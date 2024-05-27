@@ -86,3 +86,21 @@ target_ip = 192.168.1.100
 target_port = 12345
 listen_port = 12345
 interval = 1000
+```
+
+Create or edit the config.ini file to match your setup.
+
+### Systemd Service
+
+You can set up the command-line version to run as a systemd service on Linux:
+
+1. Create a Systemd Service File:
+ ```sh
+    sudo nano /etc/systemd/system/serial_to_udp.service
+    ```
+
+
+
+
+
+
