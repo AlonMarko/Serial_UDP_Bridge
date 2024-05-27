@@ -113,6 +113,32 @@ You can set up the command-line version to run as a systemd service on Linux:
     [Install]
     WantedBy=multi-user.target
     ```
+Replace /path/to/your/app_cli.py and /path/to/your/config.ini with the actual paths.
+
+3. Enable and Start the Service:
+  ```sh
+  sudo systemctl daemon-reload
+  sudo systemctl enable serial_to_udp.service
+  sudo systemctl start serial_to_udp.service
+ ```
+4. Reload the Configuration:
+   When you want to reload the configuration without restarting the service, use:
+    ```sh
+    sudo systemctl reload serial_to_udp.service
+    ```
+###Testing
+
+A test_com.py script is provided to create a virtual serial device and generate mock data for testing purposes.
+ ###Running the Test Script
+
+ 1. Run The Script:
+    '''sh
+    python test_com.py
+    '''
+
+  
+
+
 
 
 
