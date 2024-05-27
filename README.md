@@ -32,8 +32,8 @@ This project provides a Serial to UDP bridge that forwards data between a serial
 
 1. Clone the repository:
     ```sh
-    git clone https://github.com/yourusername/serial-to-udp-bridge.git
-    cd serial-to-udp-bridge
+    git clone https://github.com/AlonMarko/Serial_UDP_Bridge.git
+    cd Serial_UDP_Bridge
     ```
 
 2. Install the required Python packages:
