@@ -95,9 +95,28 @@ Create or edit the config.ini file to match your setup.
 You can set up the command-line version to run as a systemd service on Linux:
 
 1. Create a Systemd Service File:
- ```sh
-    sudo nano /etc/systemd/system/serial_to_udp.service
+    ```sh
+    sudo nano /etc/systemd/system/serial_to_udp.service```
+2. Add the Following Configuration:
+   ```ini
+    [Unit]
+    Description=Serial to UDP Bridge
+    After=network.target
+
+    [Service]
+    ExecStart=/usr/bin/python3 /path/to/your/app_cli.py --config /path/to/your/config.ini
+    ExecReload=/bin/kill -HUP $MAINPID
+    Restart=always
+    User=pi
+    Group=pi
+    
+    [Install]
+    WantedBy=multi-user.target
     ```
+
+
+
+
 
 
 
