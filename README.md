@@ -60,18 +60,23 @@ This project provides a Serial to UDP bridge that forwards data between a serial
 
 ### Command-Line Version
 
-1. **Running the Command-Line Application:**
+1. **Starting The Bridge:**
 
     ```sh
-    python app_cli.py --config path/to/config.ini
+    python app_cli.py --config path/to/config.ini start
+    ```
+2. **Stopping The Bridge:**
+
+    ```sh
+    python app_cli.py --config path/to/config.ini stop
     ```
 
-2. **Overriding Configuration Settings:**
+3. **Overriding Configuration Settings:**
 
     You can override specific settings from the command line. For example:
 
     ```sh
-    python app_cli.py --config path/to/config.ini --serial-port /dev/ttyUSB1 --baud-rate 115200 --target-ip 192.168.1.101 --target-port 54321 --listen-port 54321 --interval 2000
+    python app_cli.py --config path/to/config.ini --serial-port /dev/ttyUSB1 --baud-rate 115200 --target-ip 192.168.1.101 --target-port 54321 --listen-port 54321 --interval 2000 start
     ```
 
 ### Configuration
@@ -104,7 +109,7 @@ You can set up the command-line version to run as a systemd service on Linux:
     After=network.target
 
     [Service]
-    ExecStart=/usr/bin/python3 /path/to/your/app_cli.py --config /path/to/your/config.ini
+    ExecStart=/usr/bin/python3 /path/to/your/app_cli.py --config /path/to/your/config.ini start
     ExecReload=/bin/kill -HUP $MAINPID
     Restart=always
     User=pi
