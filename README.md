@@ -116,26 +116,34 @@ You can set up the command-line version to run as a systemd service on Linux:
 Replace /path/to/your/app_cli.py and /path/to/your/config.ini with the actual paths.
 
 3. Enable and Start the Service:
-  ```sh
-  sudo systemctl daemon-reload
-  sudo systemctl enable serial_to_udp.service
-  sudo systemctl start serial_to_udp.service
- ```
+    ```sh
+    sudo systemctl daemon-reload
+    sudo systemctl enable serial_to_udp.service
+    sudo systemctl start serial_to_udp.service
+   ```
 4. Reload the Configuration:
    When you want to reload the configuration without restarting the service, use:
-    ```sh
-    sudo systemctl reload serial_to_udp.service
-    ```
-###Testing
+      ```sh
+      sudo systemctl reload serial_to_udp.service
+      ```
+### Testing
 
 A test_com.py script is provided to create a virtual serial device and generate mock data for testing purposes.
- ###Running the Test Script
+ ### Running the Test Script
 
  1. Run The Script:
-    '''sh
+    ```sh
     python test_com.py
-    '''
-
+    ```
+ 2. Explanation:
+    - The script creates a virtual serial device and links it to /dev/ttyUSB0.
+    - It generates mock data and writes it to the virtual serial device.
+    - The data can be used to test the Serial to UDP Bridge application.
+    - Press Ctrl+C to stop the script.
+    - The virtual serial device will be removed.
+   
+### License
+  This project is licensed under the MIT License.
   
 
 
