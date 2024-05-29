@@ -19,6 +19,7 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
 class SerialToUDPApp:
     def __init__(self, master):
         self.master = master
@@ -96,9 +97,6 @@ class SerialToUDPApp:
         self.log_text.grid(column=1, row=10, columnspan=2, sticky=(tk.W, tk.E))
 
         self.serial_conn = None
-        self.udp_socket = None
-        self.listen_socket = None
-        self.s = None
         self.stop_event = threading.Event()
 
         for child in self.frame.winfo_children():
@@ -117,6 +115,9 @@ class SerialToUDPApp:
         target_port = self.target_port_entry.get()
         listen_port = self.listen_port_entry.get()
         interval = self.interval_entry.get()
+        self.target_ip = target_ip
+        self.listen_port = listen_port
+        self.target_port = target_port
 
         if not serial_port or not baud_rate or not target_ip or not target_port or not listen_port or not interval:
             messagebox.showwarning("Input Error", "All fields must be filled.")
@@ -124,11 +125,8 @@ class SerialToUDPApp:
 
         try:
             self.serial_conn = serial.Serial(serial_port, baudrate=int(baud_rate), timeout=1)
-            self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.listen_socket.bind(('', int(listen_port)))
         except Exception as e:
-            self.log(f"Error setting up connections: {e}")
+            self.log(f"Error setting up serial connection: {e}")
             return
 
         self.log(f"Starting bridge: {serial_port} <-> UDP {target_ip}:{target_port}")
@@ -148,36 +146,17 @@ class SerialToUDPApp:
     def stop_bridge(self):
         self.stop_event.set()
         if self.read_thread.is_alive():
+            self.log("Stopping Reading Serial Thread.")
             self.read_thread.join()
+            self.log("Thread joined.")
         if self.listen_thread.is_alive():
-            self.log("Stopping Listening UDP Thread")
-            try:
-                if self.listen_socket:
-                    self.listen_socket.sendto(b'', self.listen_socket.getsockname())
-                    self.log("Dummy packet sent.")
-            except Exception as e:
-                self.log(f"Exception while sending dummy packet: {e}")
-            finally:
-                if self.listen_socket:
-                    self.listen_socket.close()
-                    self.listen_socket = None
-                    self.log("Socket closed.")
-
-                # Wait for the thread to finish
-            if self.listen_thread:
-                self.log("Waiting for the thread to join.")
-                self.listen_thread.join(timeout=2)  # Add a timeout to join
-                self.log("Thread joined.")
-            # self.listen_socket.sendto(b'', self.listen_socket.getsockname())
-            # self.listen_thread.join()
-        if self.listen_socket:
-            self.listen_socket.close()
+            self.log("Stopping Listening UDP Thread.")
+            self.listen_thread.join()  # Add a timeout to join
+            self.log("Thread joined.")
         if self.serial_conn:
+            self.log("Closing Serial Connection.")
             self.serial_conn.close()
-        if self.udp_socket:
-            self.udp_socket.close()
-
-
+            self.log("Serial Connection Closed.")
         self.log("Bridge stopped.")
         self.start_button.config(state=tk.NORMAL)
         self.stop_button.config(state=tk.DISABLED)
@@ -185,30 +164,28 @@ class SerialToUDPApp:
 
     def read_and_send_serial_data(self):
         self.log("Serial->UDP thread started")
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.stop_event.is_set():
             try:
                 if self.serial_conn.in_waiting > 0:
                     data = self.serial_conn.read(self.serial_conn.in_waiting)
-                    self.udp_socket.sendto(data, (self.ip_list[self.target_ip_combobox.get().split(' ')[0]], int(self.target_port_entry.get())))
+                    udp_socket.sendto(data, (self.target_ip, int(self.target_port)))
                     self.log(f"Sent: {data}")
             except Exception as e:
                 self.log(f"Error: {e}")
             time.sleep(self.interval)
+        udp_socket.close()
 
     def listen_and_forward_udp_data(self):
-        """
-        Listen for UDP packets and forward the data to the serial port.
-        This function runs in a background thread.
-        """
-        self.listen_socket.setblocking(False)  # Set socket to non-blocking mode
         self.log("UDP->Serial thread started")
+        listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        listen_socket.bind(('', int(self.listen_port)))
+        listen_socket.setblocking(False)  # Set socket to non-blocking mode
         while not self.stop_event.is_set():
             try:
-                # print("recvfrom blocking....")
-                ready_to_read, _, _ = select.select([self.listen_socket], [], [], 1.0)
+                ready_to_read, _, _ = select.select([listen_socket], [], [], 1.0)
                 if ready_to_read:
-                    data, addr = self.listen_socket.recvfrom(1024)  # Buffer size 1024 bytes
-                    # print('recvfrom  %s  %s' % (data, addr))
+                    data, addr = listen_socket.recvfrom(1024)  # Buffer size 1024 bytes
                     if data:
                         self.serial_conn.write(data)
                         self.log(f"Received from {addr}: {data}")
@@ -217,16 +194,10 @@ class SerialToUDPApp:
             except socket.error as e:
                 self.log(f"Error: {e}")
                 break
-        # if self.stop_event.is_set() and self.listen_thread.is_alive():
-        #     self.listen_socket.shutdown(socket.SHUT_RDWR)
-        # if self.stop_event.is_set():
-        #
-        #     self.listen_socket.close()
-        #     print("closing")
-        self.log("Listening thread terminated")
+            time.sleep(self.interval)
+        listen_socket.close()
 
     def log(self, message):
-        # print("log")
         self.log_text.config(state=tk.NORMAL)
         self.log_text.insert(tk.END, message + "\n")
         self.log_text.config(state=tk.DISABLED)
@@ -236,3 +207,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = SerialToUDPApp(root)
     root.mainloop()
+

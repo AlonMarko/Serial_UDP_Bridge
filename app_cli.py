@@ -82,7 +82,6 @@ class SerialToUDPApp:
                     self.listen_socket.close()
                     self.listen_socket = None
                     logger.info("Socket closed.")
-
                 # Wait for the thread to finish
             if self.listen_thread:
                 logger.info("Waiting for the thread to join.")
@@ -123,7 +122,6 @@ class SerialToUDPApp:
             except socket.error as e:
                 logger.error(f"Error: {e}")
                 break
-        logger.info("Listening thread terminated")
 
 def read_config(file_path):
     config = configparser.ConfigParser()
