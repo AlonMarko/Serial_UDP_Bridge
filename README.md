@@ -146,6 +146,17 @@ A test_com.py script is provided to create a virtual serial device and generate 
     - The data can be used to test the Serial to UDP Bridge application.
     - Press Ctrl+C to stop the script.
     - The virtual serial device will be removed.
+
+Anotehr Test version of the command line script is available for loop backing, it does not interact with serial ports but rather recieves data from UDP and queues it and resends it accordingto parameters to UDP host aswell.
+### Running the Loop Back Test Script
+
+ 1. Run The Script:
+    ```sh
+    sudo python3 loop_back_test.py --target-ip <ip here> --listen-port <port> --target-port <port> start
+    ```
+ 2. Explanation:
+    - It listens for UDP packets on a specified port and sends received data back to a target IP and port.
+    - This verifies network communication functionality without requiring a physical serial device.
    
 ### License
   This project is licensed under the MIT License.
