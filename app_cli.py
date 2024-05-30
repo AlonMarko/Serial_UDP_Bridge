@@ -43,15 +43,10 @@ class SerialToUDPApp:
         self.interval = interval / 1000.0  # Convert to seconds
         self.stop_event = threading.Event()
         self.serial_conn = None
-        self.udp_socket = None
-        self.listen_socket = None
 
     def start_bridge(self):
         try:
             self.serial_conn = serial.Serial(self.serial_port, baudrate=int(self.baud_rate), timeout=1)
-            self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            self.listen_socket.bind(('', int(self.listen_port)))
         except Exception as e:
             logger.error(f"Error setting up connections: {e}")
             return
@@ -68,60 +63,53 @@ class SerialToUDPApp:
     def stop_bridge(self):
         self.stop_event.set()
         if self.read_thread.is_alive():
+            logger.info("Stopping Reading Serial Thread")
             self.read_thread.join()
+            logger.info("Thread joined.")
         if self.listen_thread.is_alive():
             logger.info("Stopping Listening UDP Thread")
-            try:
-                if self.listen_socket:
-                    self.listen_socket.sendto(b'', self.listen_socket.getsockname())
-                    logger.info("Dummy packet sent.")
-            except Exception as e:
-                logger.error(f"Exception while sending dummy packet: {e}")
-            finally:
-                if self.listen_socket:
-                    self.listen_socket.close()
-                    self.listen_socket = None
-                    logger.info("Socket closed.")
-                # Wait for the thread to finish
-            if self.listen_thread:
-                logger.info("Waiting for the thread to join.")
-                self.listen_thread.join(timeout=2)  # Add a timeout to join
-                logger.info("Thread joined.")
+            self.listen_thread.join()
+            logger.info("Thread joined.")
         if self.serial_conn:
+            logger.info("Closing Serial Connection.")
             self.serial_conn.close()
-        if self.udp_socket:
-            self.udp_socket.close()
-
+            logger.info("Serial Connection Closed.")
         logger.info("Bridge stopped.")
 
     def read_and_send_serial_data(self):
         logger.info("Serial->UDP thread started")
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while not self.stop_event.is_set():
             try:
                 if self.serial_conn.in_waiting > 0:
                     data = self.serial_conn.read(self.serial_conn.in_waiting)
-                    self.udp_socket.sendto(data, (self.target_ip, int(self.target_port)))
+                    udp_socket.sendto(data, (self.target_ip, int(self.target_port)))
                     logger.info(f"Sent: {data}")
             except Exception as e:
-                logger.error(f"Error: {e}")
-            time.sleep(self.interval)
+                logger.error(f"Error in read socket: {e}")
+        udp_socket.close()
 
     def listen_and_forward_udp_data(self):
-        self.listen_socket.setblocking(False)  # Set socket to non-blocking mode
         logger.info("UDP->Serial thread started")
+        listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        listen_socket.bind(('', int(self.listen_port)))
+        listen_socket.setblocking(False)  # Set socket to non-blocking mode
         while not self.stop_event.is_set():
             try:
-                ready_to_read, _, _ = select.select([self.listen_socket], [], [], 1.0)
+                ready_to_read, _, _ = select.select([listen_socket], [], [], 1.0)
                 if ready_to_read:
-                    data, addr = self.listen_socket.recvfrom(1024)  # Buffer size 1024 bytes
+                    data, addr = listen_socket.recvfrom(1024)  # Buffer size 1024 bytes
                     if data:
                         self.serial_conn.write(data)
                         logger.info(f"Received from {addr}: {data}")
                     else:
                         time.sleep(0.1)
             except socket.error as e:
-                logger.error(f"Error: {e}")
+                logger.error(f"Error in listen socket: {e}")
                 break
+            time.sleep(self.interval)
+        listen_socket.close()
+
 
 def read_config(file_path):
     config = configparser.ConfigParser()
@@ -133,7 +121,7 @@ def main():
     parser.add_argument("--config", type=str, default="config.ini", help="Path to the configuration file")
     parser.add_argument("--serial-port", type=str, help="Serial port to use")
     parser.add_argument("--baud-rate", type=int, help="Baud rate for serial communication")
-    parser.add_argument("--target-ip", type=str, help="Target IP address for UDP")
+    parser.add_argument("--target-ip", type=str, required=True, help="Target IP address for UDP")
     parser.add_argument("--target-port", type=int, help="Target port for UDP")
     parser.add_argument("--listen-port", type=int, help="UDP port to listen on")
     parser.add_argument("--interval", type=int, help="Sampling interval in milliseconds")
@@ -144,10 +132,10 @@ def main():
 
     serial_port = args.serial_port or config.get('Settings', 'serial_port')
     baud_rate = args.baud_rate or config.getint('Settings', 'baud_rate')
-    target_ip = args.target_ip or config.get('Settings', 'target_ip')
+    target_ip = args.target_ip
     target_port = args.target_port or config.getint('Settings', 'target_port')
     listen_port = args.listen_port or config.getint('Settings', 'listen_port')
-    interval = args.interval or config.getint('Settings', 'interval')
+    interval = args.interval or config.getint('Settings', 'sampling_interval')
 
     app = SerialToUDPApp(
         serial_port=serial_port,
@@ -157,7 +145,6 @@ def main():
         listen_port=listen_port,
         interval=interval
     )
-
     if args.action == 'start':
         app.start_bridge()
         try:

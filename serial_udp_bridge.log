@@ -1,0 +1,232 @@
+2024-05-30 11:33:31,519 - INFO - Starting bridge: /dev/ttyUSB0 <-> UDP 192.168.0.100:6000
+2024-05-30 11:33:31,520 - INFO - Serial->UDP thread started
+2024-05-30 11:33:31,520 - INFO - Sent: b'\n'
+2024-05-30 11:33:31,520 - INFO - UDP->Serial thread started
+2024-05-30 11:33:31,620 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:31,720 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:31,820 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:31,920 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,020 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,120 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,220 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,320 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,421 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,521 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,621 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,721 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,821 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:32,921 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:33,021 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:33,121 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:33,222 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:33,322 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:33:33,346 - INFO - Stopping Reading Serial Thread
+2024-05-30 11:33:33,347 - INFO - Thread joined.
+2024-05-30 11:33:33,347 - INFO - Stopping Listening UDP Thread
+2024-05-30 11:33:33,544 - INFO - Thread joined.
+2024-05-30 11:33:33,544 - INFO - Closing Serial Connection.
+2024-05-30 11:33:33,544 - INFO - Serial Connection Closed.
+2024-05-30 11:33:33,544 - INFO - Bridge stopped.
+2024-05-30 11:35:36,238 - INFO - Starting bridge: /dev/ttyUSB0 <-> UDP 192.168.0.100:6000
+2024-05-30 11:35:36,239 - INFO - Serial->UDP thread started
+2024-05-30 11:35:36,239 - INFO - UDP->Serial thread started
+2024-05-30 11:35:36,239 - INFO - Sent: b'\n'
+2024-05-30 11:35:36,339 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:36,439 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:36,539 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:36,639 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:36,739 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:36,839 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:36,940 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,040 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,140 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,240 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,340 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,440 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,541 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,641 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,741 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,841 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:37,941 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,041 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,142 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,242 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,342 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,442 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,542 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,643 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,743 - ERROR - Error: [Errno 9] Bad file descriptor
+2024-05-30 11:35:38,840 - INFO - Stopping Reading Serial Thread
+2024-05-30 11:35:38,841 - INFO - Thread joined.
+2024-05-30 11:35:38,841 - INFO - Stopping Listening UDP Thread
+2024-05-30 11:35:39,273 - INFO - Thread joined.
+2024-05-30 11:35:39,273 - INFO - Closing Serial Connection.
+2024-05-30 11:35:39,273 - INFO - Serial Connection Closed.
+2024-05-30 11:35:39,273 - INFO - Bridge stopped.
+2024-05-30 11:36:33,709 - INFO - Starting bridge: /dev/ttyUSB0 <-> UDP 192.168.0.100:6000
+2024-05-30 11:36:33,709 - INFO - Serial->UDP thread started
+2024-05-30 11:36:33,709 - INFO - UDP->Serial thread started
+2024-05-30 11:36:33,750 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:33,850 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:33,951 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,051 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,151 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,251 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,351 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,451 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,552 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,652 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,752 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,852 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:34,952 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,052 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,152 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,253 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,353 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,453 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,553 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,653 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,753 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,853 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:35,954 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:36,054 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:36:36,055 - INFO - Stopping Reading Serial Thread
+2024-05-30 11:36:36,055 - INFO - Thread joined.
+2024-05-30 11:36:36,055 - INFO - Stopping Listening UDP Thread
+2024-05-30 11:36:36,742 - INFO - Thread joined.
+2024-05-30 11:36:36,742 - INFO - Closing Serial Connection.
+2024-05-30 11:36:36,742 - INFO - Serial Connection Closed.
+2024-05-30 11:36:36,742 - INFO - Bridge stopped.
+2024-05-30 11:37:19,246 - INFO - Starting bridge: /dev/ttyUSB0 <-> UDP 192.168.0.100:6000
+2024-05-30 11:37:19,247 - INFO - Serial->UDP thread started
+2024-05-30 11:37:19,247 - INFO - UDP->Serial thread started
+2024-05-30 11:37:19,326 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:19,426 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:19,526 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:19,626 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:19,726 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:19,826 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:19,927 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,027 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,127 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,229 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,327 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,427 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,528 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,629 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,728 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,828 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:20,928 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:21,029 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:21,129 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:21,229 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:21,329 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:21,430 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:21,530 - ERROR - Error in read socket: [Errno 9] Bad file descriptor
+2024-05-30 11:37:21,618 - INFO - Stopping Reading Serial Thread
+2024-05-30 11:37:21,618 - INFO - Thread joined.
+2024-05-30 11:37:21,619 - INFO - Stopping Listening UDP Thread
+2024-05-30 11:37:22,281 - INFO - Thread joined.
+2024-05-30 11:37:22,281 - INFO - Closing Serial Connection.
+2024-05-30 11:37:22,281 - INFO - Serial Connection Closed.
+2024-05-30 11:37:22,281 - INFO - Bridge stopped.
+2024-05-30 11:42:28,497 - INFO - Starting bridge: /dev/ttyUSB0 <-> UDP 192.168.0.100:6000
+2024-05-30 11:42:28,507 - INFO - Serial->UDP thread started
+2024-05-30 11:42:28,507 - INFO - UDP->Serial thread started
+2024-05-30 11:42:28,507 - INFO - Sent: b'\n'
+2024-05-30 11:42:28,598 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:28,698 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:28,798 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:28,898 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:28,998 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,098 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,199 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,299 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,399 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,499 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,599 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,699 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,800 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:29,900 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,000 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,100 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,200 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,300 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,400 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,501 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,601 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,701 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,801 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:30,901 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,001 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,101 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,202 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,302 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,402 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,502 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,602 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,702 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,803 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:31,903 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,003 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,103 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,203 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,303 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,404 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,504 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,604 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,704 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,804 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:32,904 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,004 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,105 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,205 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,305 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,405 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,505 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,605 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,705 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,805 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:33,906 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,006 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,106 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,206 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,306 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,406 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,507 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,607 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,707 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,807 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:34,907 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:35,007 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:35,107 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:35,208 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:35,308 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:35,376 - INFO - Stopping Reading Serial Thread
+2024-05-30 11:42:35,376 - INFO - Thread joined.
+2024-05-30 11:42:35,376 - INFO - Stopping Listening UDP Thread
+2024-05-30 11:42:35,584 - INFO - Thread joined.
+2024-05-30 11:42:35,585 - INFO - Closing Serial Connection.
+2024-05-30 11:42:35,585 - INFO - Serial Connection Closed.
+2024-05-30 11:42:35,585 - INFO - Bridge stopped.
+2024-05-30 11:42:46,791 - INFO - Starting bridge: /dev/ttyUSB0 <-> UDP 192.168.0.100:6000
+2024-05-30 11:42:46,791 - INFO - Serial->UDP thread started
+2024-05-30 11:42:46,791 - INFO - UDP->Serial thread started
+2024-05-30 11:42:46,857 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:46,957 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,057 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,157 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,257 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,357 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,458 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,558 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,658 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,758 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,858 - INFO - Sent: b'Test data from mock device\n'
+2024-05-30 11:42:47,874 - INFO - Stopping Reading Serial Thread
+2024-05-30 11:42:47,874 - INFO - Thread joined.
+2024-05-30 11:42:47,874 - INFO - Stopping Listening UDP Thread
+2024-05-30 11:42:48,815 - INFO - Thread joined.
+2024-05-30 11:42:48,815 - INFO - Closing Serial Connection.
+2024-05-30 11:42:48,815 - INFO - Serial Connection Closed.
+2024-05-30 11:42:48,815 - INFO - Bridge stopped.
