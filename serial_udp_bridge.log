@@ -230,3 +230,27 @@
 2024-05-30 11:42:48,815 - INFO - Closing Serial Connection.
 2024-05-30 11:42:48,815 - INFO - Serial Connection Closed.
 2024-05-30 11:42:48,815 - INFO - Bridge stopped.
+2024-06-04 09:37:31,553 - ERROR - Error setting up connections: "port" must be None or a string, not <class 'list'>
+2024-06-04 09:37:43,287 - INFO - Bridge stopped.
+2024-06-04 09:39:26,053 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB0'], 'target_ports': [5000], 'listen_ports': [5001]}: "port" must be None or a string, not <class 'list'>
+2024-06-04 09:39:26,053 - INFO - Starting bridge: ['/dev/ttyUSB0'] <-> UDP 192.168.0.100:[5000]
+2024-06-04 09:39:26,054 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB1'], 'target_ports': [6000], 'listen_ports': [6001]}: "port" must be None or a string, not <class 'list'>
+2024-06-04 09:39:26,054 - INFO - Starting bridge: ['/dev/ttyUSB1'] <-> UDP 192.168.0.100:[6000]
+2024-06-04 09:39:28,418 - INFO - Bridge stopped.
+2024-06-04 09:39:34,304 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB0'], 'target_ports': [5000], 'listen_ports': [5001]}: "port" must be None or a string, not <class 'list'>
+2024-06-04 09:39:34,304 - INFO - Starting bridge: ['/dev/ttyUSB0'] <-> UDP 192.168.0.100:[5000]
+2024-06-04 09:39:34,304 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB1'], 'target_ports': [6000], 'listen_ports': [6001]}: "port" must be None or a string, not <class 'list'>
+2024-06-04 09:39:34,304 - INFO - Starting bridge: ['/dev/ttyUSB1'] <-> UDP 192.168.0.100:[6000]
+2024-06-04 09:39:38,313 - INFO - Bridge stopped.
+2024-06-04 10:00:19,073 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB0'], 'target_ports': [5000], 'listen_ports': [5001]}: "port" must be None or a string, not <class 'list'>
+2024-06-04 10:00:19,073 - INFO - Starting bridge: ['/dev/ttyUSB0'] <-> UDP 192.168.0.100:[5000]
+2024-06-04 10:00:19,073 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB1'], 'target_ports': [6000], 'listen_ports': [6001]}: "port" must be None or a string, not <class 'list'>
+2024-06-04 10:00:19,073 - INFO - Starting bridge: ['/dev/ttyUSB1'] <-> UDP 192.168.0.100:[6000]
+2024-06-04 10:00:29,825 - INFO - Bridge stopped.
+2024-06-04 10:03:45,167 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB0'], 'target_ports': [5000], 'listen_ports': [5001]}: "port" must be None or a string, not <class 'list'>
+2024-06-04 10:03:45,167 - INFO - Bridge stopped.
+2024-06-04 10:05:09,405 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB0'], 'target_ports': [5000], 'listen_ports': [5001]}: [Errno 2] could not open port /dev/ttyUSB0: [Errno 2] No such file or directory: '/dev/ttyUSB0'
+2024-06-04 10:05:09,405 - INFO - Bridge stopped.
+2024-06-04 10:09:17,489 - INFO - Starting bridge: ['/dev/ttyUSB0'] <-> UDP 192.168.0.100:[5000]
+2024-06-04 10:09:17,489 - ERROR - Error in start_connection for {'serial_ports': ['/dev/ttyUSB0'], 'target_ports': [5000], 'listen_ports': [5001]}: [Errno 2] could not open port /dev/ttyUSB0: [Errno 2] No such file or directory: '/dev/ttyUSB0'
+2024-06-04 10:09:17,489 - INFO - Bridge stopped.

@@ -78,7 +78,7 @@ class SerialToUDPApp:
         self.interval = self.config.getint('Common', 'interval')
 
         self.ip_list = {k: v for k, v in self.config.items('IP_List')}
-        self.connections = ["Connection1", "Connection2", "Connection3"]
+        self.connections = ["Connection1", "Connection2"]
         self.threads = []
 
         self.create_main_gui()
@@ -96,14 +96,6 @@ class SerialToUDPApp:
         # Create common settings
         common_label = ttk.Label(self.frame, text="Common Settings")
         common_label.grid(row=0, column=0, columnspan=2, pady=10)
-
-        # Target IP selection
-        # target_ip_label = ttk.Label(self.frame, text="Target IP")
-        # target_ip_label.grid(row=1, column=0, sticky=tk.W, pady=5)
-        # self.target_ip_combobox = ttk.Combobox(self.frame)
-        # self.target_ip_combobox['values'] = [f"{key} - {value}" for key, value in self.ip_list.items()]
-        # self.target_ip_combobox.grid(row=1, column=1, sticky=tk.EW, pady=5)
-        # self.target_ip_combobox.set(next(iter(self.ip_list.values())))
 
         # Target IP selection
         target_ip_label = ttk.Label(self.frame, text="Target IP")

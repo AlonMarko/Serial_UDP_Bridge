@@ -24,6 +24,7 @@ file_handler = logging.FileHandler('serial_udp_bridge.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
+
 def resource_path(relative_path):
     """ Get the absolute path to the resource, works for dev and for PyInstaller """
     try:
@@ -32,6 +33,7 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
 
 class SerialToUDPApp:
     def __init__(self, serial_port, baud_rate, target_ip, target_port, listen_port, interval):
@@ -116,6 +118,7 @@ def read_config(file_path):
     config.read(file_path)
     return config
 
+
 def main():
     parser = argparse.ArgumentParser(description="Serial to UDP Bridge")
     parser.add_argument("--config", type=str, default="config.ini", help="Path to the configuration file")
@@ -125,7 +128,8 @@ def main():
     parser.add_argument("--target-port", type=int, help="Target port for UDP")
     parser.add_argument("--listen-port", type=int, help="UDP port to listen on")
     parser.add_argument("--interval", type=int, help="Sampling interval in milliseconds")
-    parser.add_argument("action", choices=['start', 'stop'], help="Action to perform (start or stop the bridge)")
+    parser.add_argument("action", choices=['start', 'stop'], required=True,
+                        help="Action to perform (start or stop the bridge)")
 
     args = parser.parse_args()
     config = read_config(args.config)
@@ -154,6 +158,7 @@ def main():
             app.stop_bridge()
     elif args.action == 'stop':
         app.stop_bridge()
+
 
 if __name__ == "__main__":
     main()
