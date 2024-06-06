@@ -8,7 +8,9 @@ import configparser
 import select
 import os
 import sys
+import psutil
 from datetime import datetime
+
 
 def resource_path(relative_path):
     """ Get the absolute path to the resource, works for dev and for PyInstaller """
@@ -19,6 +21,7 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
 
     return os.path.join(base_path, relative_path)
+
 
 class SettingsWindow(tk.Toplevel):
     def __init__(self, master, connection_name, config, *args, **kwargs):
@@ -63,6 +66,7 @@ class SettingsWindow(tk.Toplevel):
         messagebox.showinfo("Settings Saved", "Settings have been saved successfully.")
         self.destroy()
 
+
 class SerialToUDPApp:
     def __init__(self, master):
         self.master = master
@@ -82,6 +86,9 @@ class SerialToUDPApp:
         self.threads = []
 
         self.create_main_gui()
+
+        # Bind the closing event to send the stop packet
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
     def create_main_gui(self):
         """Create the main GUI layout."""
@@ -105,7 +112,6 @@ class SerialToUDPApp:
         self.target_ip_combobox.grid(row=1, column=1, sticky=tk.EW, pady=5)
         self.target_ip_combobox.set(next((f"{key} - {value}" for key, value in self.ip_list.items()), ''))
 
-
         # Baud rate and interval
         baud_rate_label = ttk.Label(self.frame, text="Baud Rate")
         baud_rate_label.grid(row=2, column=0, sticky=tk.W, pady=5)
@@ -121,7 +127,8 @@ class SerialToUDPApp:
 
         # Create buttons to open settings windows for each connection
         for idx, connection in enumerate(self.connections, start=4):
-            button = ttk.Button(self.frame, text=f"Settings for {connection}", command=lambda c=connection: self.open_settings_window(c))
+            button = ttk.Button(self.frame, text=f"Settings for {connection}",
+                                command=lambda c=connection: self.open_settings_window(c))
             button.grid(row=idx, column=0, columnspan=2, pady=10)
 
         # Add start and stop buttons
@@ -169,6 +176,8 @@ class SerialToUDPApp:
             with open("config.ini", "w") as configfile:
                 self.config.write(configfile)
 
+            self.send_start_packet()
+
             self.stop_event = threading.Event()
             for connection in self.connections:
                 self.start_connection(connection)
@@ -184,6 +193,7 @@ class SerialToUDPApp:
     def stop_bridge(self):
         """Stop the serial to UDP bridge."""
         try:
+            self.send_stop_packet()
             self.stop_event.set()
             for thread in self.threads:
                 thread.join()
@@ -206,7 +216,8 @@ class SerialToUDPApp:
         listen_socket.bind(('', listen_port))
         listen_socket.setblocking(False)
 
-        read_thread = threading.Thread(target=self.read_and_send_serial_data, args=(serial_conn, udp_socket, target_port))
+        read_thread = threading.Thread(target=self.read_and_send_serial_data,
+                                       args=(serial_conn, udp_socket, target_port))
         listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, args=(serial_conn, listen_socket))
 
         self.threads.extend([read_thread, listen_thread])
@@ -246,6 +257,45 @@ class SerialToUDPApp:
         finally:
             listen_socket.close()
 
+    def get_ipv4_address(self):
+        """Get the IPv4 address of the enp interfaces."""
+        addresses = psutil.net_if_addrs()
+        for interface_name, interface_addresses in addresses.items():
+            if interface_name.startswith('enp'):
+                for addr in interface_addresses:
+                    if addr.family == socket.AF_INET:
+                        return addr.address
+
+        self.log("Failed to send packet: No 'enp' interface with IPv4 address found.")
+        return None
+
+    def send_start_packet(self):
+        """Send a start packet to the target IP."""
+        ip_address = self.get_ipv4_address()
+        if ip_address is None:
+            return  # Do not send packet if IP address is not found
+
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        start_packet = f"{ip_address} start".encode()
+        for i in range(5):
+            # Send 5 Times to make sure recieve.
+            udp_socket.sendto(start_packet, (self.target_ip, 7000))
+            time.sleep(0.05)
+        udp_socket.close()
+        self.log(f"Sent start packet to {self.target_ip}:7000")
+
+    def send_stop_packet(self):
+        """Send a stop packet to the target IP."""
+        ip_address = self.get_ipv4_address()
+        if ip_address is None:
+            return  # Do not send packet if IP address is not found
+
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        stop_packet = f"{ip_address} stop".encode()
+        udp_socket.sendto(stop_packet, (self.target_ip, 7000))
+        udp_socket.close()
+        self.log(f"Sent stop packet to {self.target_ip}:7000")
+
     def log(self, message):
         """Log messages with timestamps."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -260,6 +310,12 @@ class SerialToUDPApp:
         self.log_text.config(state=tk.NORMAL)
         self.log_text.delete(1.0, tk.END)
         self.log_text.config(state=tk.DISABLED)
+
+    def on_closing(self):
+        """Handle the GUI closing event."""
+        self.stop_bridge()
+        self.master.destroy()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
