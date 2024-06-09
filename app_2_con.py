@@ -279,7 +279,7 @@ class SerialToUDPApp:
         start_packet = f"{ip_address} start".encode()
         for i in range(5):
             # Send 5 Times to make sure recieve.
-            udp_socket.sendto(start_packet, (self.target_ip, 7000))
+            udp_socket.sendto(start_packet, (self.target_ip, 7000)) # Hard coded default port
             time.sleep(0.05)
         udp_socket.close()
         self.log(f"Sent start packet to {self.target_ip}:7000")

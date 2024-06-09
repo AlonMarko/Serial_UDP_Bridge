@@ -57,7 +57,7 @@ def handle_packet(data, addr, current_state):
 def listener():
     """Listen for packets on port 7000 and handle state transitions."""
     listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    listen_socket.bind(('', 7000))
+    listen_socket.bind(('', 7000)) # Hard coded default port.
 
     current_state = {'waiting_for': 'start'}
 
