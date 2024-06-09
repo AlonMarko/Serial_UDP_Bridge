@@ -133,7 +133,7 @@ def read_config(config_path):
 
 def main():
     parser = argparse.ArgumentParser(description="Serial to UDP Bridge")
-    parser.add_argument("--config", type=str, default="config.ini", help="Path to the configuration file")
+    parser.add_argument("--config", type=str, default="config_cli.ini", help="Path to the configuration file")
     parser.add_argument("--serial-ports", type=str, help="Comma-separated list of Serial connections to use")
     parser.add_argument("--baud-rate", type=int, help="Baud rate for serial communication")
     parser.add_argument("--target-ip", type=str, required=True, help="Target IP address for UDP")
