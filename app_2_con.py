@@ -71,7 +71,7 @@ class SerialToUDPApp:
     def __init__(self, master):
         self.master = master
         master.title("Serial to UDP Bridge")
-        master.geometry("1000x700")  # Adjusted window size
+        master.geometry("800x800")  # Adjusted window size
         master.resizable(False, False)  # Window not resizable
 
         self.config = configparser.ConfigParser()
@@ -80,6 +80,10 @@ class SerialToUDPApp:
         # Load common settings
         self.baud_rate = self.config.getint('Common', 'baud_rate')
         self.interval = self.config.getint('Common', 'interval')
+        self.data_bits = self.config.getint('Common', 'data_bits', fallback=8)
+        self.parity = self.config.get('Common', 'parity', fallback='None')
+        self.stop_bits = self.config.getfloat('Common', 'stop_bits', fallback=1)
+
 
         self.ip_list = {k: v for k, v in self.config.items('IP_List')}
         self.connections = ["Connection1", "Connection2"]
@@ -102,7 +106,7 @@ class SerialToUDPApp:
 
         for i in range(1, 11):
             self.frame.rowconfigure(i, weight=1)
-        for i in range(1, 3):
+        for i in range(2):  # Configure two columns
             self.frame.columnconfigure(i, weight=1)
 
         # Create common settings
@@ -118,42 +122,41 @@ class SerialToUDPApp:
         self.target_ip_combobox.set(next((f"{key} - {value}" for key, value in self.ip_list.items()), ''))
 
         # Baud rate and interval
-        baud_rate_label = ttk.Label(self.frame, text="Baud Rate")
-        baud_rate_label.grid(row=2, column=0, sticky=tk.W, pady=5)
-        self.baud_rate_entry = ttk.Entry(self.frame)
-        self.baud_rate_entry.insert(0, self.baud_rate)
-        self.baud_rate_entry.grid(row=2, column=1, sticky=tk.EW, pady=5)
+        self.baud_rate_entry = self.add_common_setting("Baud Rate", "The baud rate for the serial communication.", 2)
+        self.interval_entry = self.add_common_setting("Sampling Interval (ms)", "The sampling interval in milliseconds.", 3)
 
-        interval_label = ttk.Label(self.frame, text="Sampling Interval (ms)")
-        interval_label.grid(row=3, column=0, sticky=tk.W, pady=5)
-        self.interval_entry = ttk.Entry(self.frame)
-        self.interval_entry.insert(0, self.interval)
-        self.interval_entry.grid(row=3, column=1, sticky=tk.EW, pady=5)
+        # Data bits selection
+        self.data_bits_combobox = self.add_common_setting("Data Bits", "The number of data bits per byte (5, 6, 7, or 8).", 4, [5, 6, 7, 8])
+
+        # Parity selection
+        self.parity_combobox = self.add_common_setting("Parity", "The parity setting (None, Even, Odd, Mark, or Space).", 5, ['None', 'Even', 'Odd', 'Mark', 'Space'])
+
+        # Stop bits selection
+        self.stop_bits_combobox = self.add_common_setting("Stop Bits", "The number of stop bits (1, 1.5, or 2).", 6, [1, 1.5, 2])
 
         # Create buttons to open settings windows for each connection
-        for idx, connection in enumerate(self.connections, start=4):
-            button = ttk.Button(self.frame, text=f"Settings for {connection}",
-                                command=lambda c=connection: self.open_settings_window(c))
+        for idx, connection in enumerate(self.connections, start=7):
+            button = ttk.Button(self.frame, text=f"Settings for {connection}", command=lambda c=connection: self.open_settings_window(c))
             button.grid(row=idx, column=0, columnspan=2, pady=10)
 
         # Add start and stop buttons
         self.start_button = ttk.Button(self.frame, text="Start Bridge", command=self.start_bridge)
-        self.start_button.grid(row=7, column=0, pady=10)
+        self.start_button.grid(row=7 + len(self.connections), column=0, pady=10)
 
         self.stop_button = ttk.Button(self.frame, text="Stop Bridge", command=self.stop_bridge, state=tk.DISABLED)
-        self.stop_button.grid(row=7, column=1, pady=10)
+        self.stop_button.grid(row=7 + len(self.connections), column=1, pady=10)
 
         # Clear log button
         self.clear_log_button = ttk.Button(self.frame, text="Clear Log", command=self.clear_log)
-        self.clear_log_button.grid(row=8, column=0, columnspan=2, pady=10)
+        self.clear_log_button.grid(row=8 + len(self.connections), column=0, columnspan=2, pady=10)
 
         # Status label
         self.status_label = ttk.Label(self.frame, text="Status: Not running")
-        self.status_label.grid(row=9, column=0, columnspan=2, pady=10)
+        self.status_label.grid(row=9 + len(self.connections), column=0, columnspan=2, pady=10)
 
         # Log text area with scrollbars
         self.log_frame = ttk.Frame(self.master)
-        self.log_frame.grid(row=10, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.log_frame.grid(row=10 + len(self.connections), column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
         self.log_text = tk.Text(self.log_frame, state=tk.DISABLED, height=15, wrap='none')
         self.log_scroll_y = ttk.Scrollbar(self.log_frame, orient=tk.VERTICAL, command=self.log_text.yview)
         self.log_scroll_x = ttk.Scrollbar(self.log_frame, orient=tk.HORIZONTAL, command=self.log_text.xview)
@@ -163,11 +166,41 @@ class SerialToUDPApp:
         self.log_scroll_y.grid(row=0, column=1, sticky=(tk.N, tk.S))
         self.log_scroll_x.grid(row=1, column=0, sticky=(tk.W, tk.E))
 
-
         # Configure tags for log text
         self.log_text.tag_config('info', foreground='black')
         self.log_text.tag_config('error', foreground='red')
 
+    def add_common_setting(self, label_text, info_text, row, values=None):
+        label = ttk.Label(self.frame, text=label_text)
+        label.grid(row=row, column=0, sticky=tk.W, pady=5)
+
+        # Mapping for label text to configuration keys
+        config_key_mapping = {
+            "Baud Rate": "baud_rate",
+            "Sampling Interval (ms)": "interval",
+            "Data Bits": "data_bits",
+            "Parity": "parity",
+            "Stop Bits": "stop_bits"
+        }
+
+        config_key = config_key_mapping[label_text]
+
+        if values:
+            widget_var = ttk.Combobox(self.frame)
+            widget_var['values'] = values
+            widget_var.set(self.config.get('Common', config_key, fallback=values[0]))
+        else:
+            widget_var = ttk.Entry(self.frame)
+            widget_var.insert(0, self.config.get('Common', config_key))
+        widget_var.grid(row=row, column=1, sticky=tk.EW, pady=5)
+
+        info_button = ttk.Button(self.frame, text="?", command=lambda: self.show_info(info_text))
+        info_button.grid(row=row, column=2, sticky=tk.W, pady=5)
+
+        return widget_var
+
+    def show_info(self, info_text):
+        messagebox.showinfo("Info", info_text)
 
     def open_settings_window(self, connection_name):
         """Open the settings window for a specific connection."""
@@ -191,7 +224,7 @@ class SerialToUDPApp:
                 self.config.write(configfile)
 
 
-            self.send_start_packet()
+
 
             self.stop_event = threading.Event()
             for connection in self.connections:
@@ -200,6 +233,7 @@ class SerialToUDPApp:
             self.status_label.config(text="Status: Running")
             self.start_button.config(state=tk.DISABLED)
             self.stop_button.config(state=tk.NORMAL)
+            self.send_start_packet()
         except Exception as e:
             self.log(f"Error in start_bridge: {e}")
             self.status_label.config(text="Status: Not running")
