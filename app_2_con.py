@@ -216,20 +216,22 @@ class SerialToUDPApp:
                 raise ValueError(f"Invalid IP address key: {selected_ip_key}")
             self.baud_rate = int(self.baud_rate_entry.get())
             self.interval = int(self.interval_entry.get())
+            self.data_bits = int(self.data_bits_combobox.get())
+            self.parity = self.parity_combobox.get()
+            self.stop_bits = float(self.stop_bits_combobox.get())
 
             self.config.set('Common', 'target_ip', self.target_ip)
             self.config.set('Common', 'baud_rate', str(self.baud_rate))
             self.config.set('Common', 'interval', str(self.interval))
+            self.config.set('Common', 'data_bits', str(self.data_bits))
+            self.config.set('Common', 'parity', self.parity)
+            self.config.set('Common', 'stop_bits', str(self.stop_bits))
             with open("config.ini", "w") as configfile:
                 self.config.write(configfile)
-
-
-
 
             self.stop_event = threading.Event()
             for connection in self.connections:
                 self.start_connection(connection)
-            self.log("Bridge Start......")
             self.status_label.config(text="Status: Running")
             self.start_button.config(state=tk.DISABLED)
             self.stop_button.config(state=tk.NORMAL)
@@ -256,12 +258,33 @@ class SerialToUDPApp:
 
     def start_connection(self, connection):
         """Start the connection for a specific serial port and corresponding UDP ports."""
-        # try:
+
         serial_port = self.config.get(connection, "serial_port")
         target_port = self.config.getint(connection, "target_port")
         listen_port = self.config.getint(connection, "listen_port")
+        data_bits = self.data_bits
+        parity = self.parity[0].upper()  # Get the first letter (N, E, O, M, S)
+        stop_bits = self.stop_bits
 
-        serial_conn = serial.Serial(serial_port, baudrate=self.baud_rate, timeout=1)
+        # Mapping parity value
+        parity_mapping = {
+            'N': serial.PARITY_NONE,
+            'E': serial.PARITY_EVEN,
+            'O': serial.PARITY_ODD,
+            'M': serial.PARITY_MARK,
+            'S': serial.PARITY_SPACE
+        }
+
+        serial_conn = serial.Serial(
+            port=serial_port,
+            baudrate=self.baud_rate,
+            bytesize={5: serial.FIVEBITS, 6: serial.SIXBITS, 7: serial.SEVENBITS, 8: serial.EIGHTBITS}[data_bits],
+            parity=parity_mapping.get(parity, serial.PARITY_NONE),
+            stopbits={1: serial.STOPBITS_ONE, 1.5: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}[
+                stop_bits],
+            timeout=1
+        )
+
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         listen_socket.bind(('', listen_port))
@@ -275,8 +298,7 @@ class SerialToUDPApp:
 
         read_thread.start()
         listen_thread.start()
-        # except Exception as e:
-        #     self.log(f"Error in start_connection for {connection}: {e}")
+
 
     def read_and_send_serial_data(self, serial_conn, udp_socket, target_port):
         """Read data from serial port and send it via UDP."""
