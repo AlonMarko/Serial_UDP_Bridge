@@ -11,16 +11,45 @@ logging.basicConfig(filename='/var/log/packet_listener.log', level=logging.DEBUG
 
 stop_event = threading.Event()
 start_process = None  # Global variable to track the 'app_cli_2_con.py' subprocess
+current_target_ip = None  # To track the IP from which the start packet was received
+
+def monitor_subprocess():
+    global start_process
+    if start_process:
+        exit_code = start_process.wait()  # Wait for the subprocess to exit
+        if exit_code != 0:
+            logging.error(f"app_cli_2_con.py exited with code {exit_code}")
+            send_error_packet(current_target_ip, f"app_cli_2_con.py exited with code {exit_code}")
+        # Transition back to waiting for start mode
+        start_process = None
+        logging.info("Transitioning back to waiting for start mode")
+
+
+def send_error_packet(target_ip, message):
+    """Send an error packet to the specified IP address."""
+    try:
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        error_packet = f"ERROR: {message}".encode()
+        udp_socket.sendto(error_packet, (target_ip, 7000))
+        udp_socket.close()
+        # logging.info(f"sent error packet to {target_ip} with error {error_packet}")
+    except Exception as e:
+        logging.error(f"Failed to send error packet to {target_ip}: {e}")
+
 
 def handle_start(target_ip):
     """Handle start packet by running the start code from a different Python file."""
-    global start_process
+    global start_process, current_target_ip
+    current_target_ip = target_ip  # Store the target IP
     try:
         # Start the subprocess and store the Popen object in the global variable
-        start_process = subprocess.run(['python3', 'app_cli_2_con.py', '--target-ip', target_ip, 'start'], check=True)
+        start_process = subprocess.Popen(['python3', 'app_cli_2_con.py', '--target-ip', target_ip, 'start'])
         logging.info(f"Successfully started app_cli_2_con.py with target IP {target_ip}")
+        monitor_thread = threading.Thread(target=monitor_subprocess)
+        monitor_thread.start()
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to run app_cli_2_con.py: {e}")
+
 
 def handle_stop():
     """Handle stop packet by running the stop code from a different Python file."""
@@ -31,9 +60,10 @@ def handle_stop():
             start_process.wait()  # Wait for the subprocess to handle SIGINT and exit
             logging.info("Successfully stopped app_cli_2_con.py")
         except subprocess.CalledProcessError as e:
-            logging.error(f"Failed to run app_cli_2_con.py: {e}")
+            logging.error(f"Failed to stop app_cli_2_con.py: {e}")
     else:
         logging.warning("No running app_cli_2_con.pyprocess found to stop")
+
 
 def handle_packet(data, addr, current_state):
     """Process the received packet based on the current state."""
@@ -54,10 +84,11 @@ def handle_packet(data, addr, current_state):
     except Exception as e:
         logging.error(f"Error processing packet: {e}")
 
+
 def listener():
     """Listen for packets on port 7000 and handle state transitions."""
     listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    listen_socket.bind(('', 7000)) # Hard coded default port.
+    listen_socket.bind(('', 7000))  # Hard coded default port.
 
     current_state = {'waiting_for': 'start'}
 
@@ -72,11 +103,13 @@ def listener():
         listen_socket.close()
         logging.info("Listener socket closed")
 
+
 def signal_handler(sig, frame):
     logging.info(f"Received signal {sig}, shutting down.")
     stop_event.set()
     if start_process and start_process.poll() is None:  # If start process is still running, stop it
         handle_stop()
+
 
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, signal_handler)

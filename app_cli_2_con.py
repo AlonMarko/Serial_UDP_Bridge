@@ -58,6 +58,7 @@ class SerialToUDPApp:
                 time.sleep(self.interval / 1000.0)
         except Exception as e:
             self.log(f"Error in read_and_send_serial_data: {e}")
+            # self.send_error_packet(self.target_ip, "Error in read_and_send_serial_data")
         finally:
             udp_socket.close()
             serial_conn.close()
@@ -74,6 +75,7 @@ class SerialToUDPApp:
                         self.log(f"Received from {addr}: {data}")
         except Exception as e:
             self.log(f"Error in listen_and_forward_udp_data: {e}")
+            # self.send_error_packet(self.target_ip, "Error in listen_and_forward_udp_data")
         finally:
             listen_socket.close()
 
@@ -100,8 +102,9 @@ class SerialToUDPApp:
             listen_thread.start()
         except Exception as e:
             logger.error(f"Error in start_connection for {connection}: {e}")
+            # self.send_error_packet(self.target_ip, "Error in start_connection")
             self.stop_bridge()
-            exit()
+            exit(1)
 
     def start_bridge(self):
         try:
@@ -112,8 +115,9 @@ class SerialToUDPApp:
 
         except Exception as e:
             logger.error(f"Error in start_bridge: {e}")
+            # self.send_error_packet(self.target_ip, "Error in start_bridge")
             self.stop_bridge()
-            exit()
+            exit(1)
 
     def stop_bridge(self):
         try:
@@ -123,6 +127,16 @@ class SerialToUDPApp:
             logger.info("Bridge stopped.")
         except Exception as e:
             logger.info(f"Error in stop_bridge: {e}")
+
+    # def send_error_packet(self, target_ip, message):
+    #     """Send an error packet to the specified IP address."""
+    #     try:
+    #         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #         error_packet = f"ERROR: {message}".encode()
+    #         udp_socket.sendto(error_packet, (target_ip, 7000)) # Default IP for app communication.
+    #         udp_socket.close()
+    #     except Exception as e:
+    #         logger.error(f"Failed to send error packet to {target_ip}: {e}")
 
 
 def read_config(config_path):
@@ -193,11 +207,17 @@ def main():
         app.start_bridge()
         try:
             while True:
-                time.sleep(1)
+                time.sleep(0.5)
         except KeyboardInterrupt:
             app.stop_bridge()
+        except Exception as e:
+            logger.error(f"Exception in main loop: {e}")
+            app.stop_bridge()
+            sys.exit(1)  # Exit with a code indicating an error
     elif args.action == 'stop':
         app.stop_bridge()
+        sys.exit(0)  # Exit with a code indicating success
+
 
 
 if __name__ == "__main__":

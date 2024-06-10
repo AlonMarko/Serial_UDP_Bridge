@@ -87,6 +87,11 @@ class SerialToUDPApp:
 
         self.create_main_gui()
 
+        # Add error listener for port 7000
+        self.error_listener_thread = threading.Thread(target=self.error_listener)
+        self.error_listener_thread.daemon = True
+        self.error_listener_thread.start()
+
         # Bind the closing event to send the stop packet
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -146,14 +151,23 @@ class SerialToUDPApp:
         self.status_label = ttk.Label(self.frame, text="Status: Not running")
         self.status_label.grid(row=9, column=0, columnspan=2, pady=10)
 
-        # Log text area with scrollbar
+        # Log text area with scrollbars
         self.log_frame = ttk.Frame(self.master)
         self.log_frame.grid(row=10, column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
-        self.log_text = tk.Text(self.log_frame, state=tk.DISABLED, height=15, fg="black")
-        self.log_scroll = ttk.Scrollbar(self.log_frame, orient=tk.VERTICAL, command=self.log_text.yview)
-        self.log_text['yscrollcommand'] = self.log_scroll.set
+        self.log_text = tk.Text(self.log_frame, state=tk.DISABLED, height=15, wrap='none')
+        self.log_scroll_y = ttk.Scrollbar(self.log_frame, orient=tk.VERTICAL, command=self.log_text.yview)
+        self.log_scroll_x = ttk.Scrollbar(self.log_frame, orient=tk.HORIZONTAL, command=self.log_text.xview)
+        self.log_text['yscrollcommand'] = self.log_scroll_y.set
+        self.log_text['xscrollcommand'] = self.log_scroll_x.set
         self.log_text.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-        self.log_scroll.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        self.log_scroll_y.grid(row=0, column=1, sticky=(tk.N, tk.S))
+        self.log_scroll_x.grid(row=1, column=0, sticky=(tk.W, tk.E))
+
+
+        # Configure tags for log text
+        self.log_text.tag_config('info', foreground='black')
+        self.log_text.tag_config('error', foreground='red')
+
 
     def open_settings_window(self, connection_name):
         """Open the settings window for a specific connection."""
@@ -176,11 +190,13 @@ class SerialToUDPApp:
             with open("config.ini", "w") as configfile:
                 self.config.write(configfile)
 
+
             self.send_start_packet()
 
             self.stop_event = threading.Event()
             for connection in self.connections:
                 self.start_connection(connection)
+            self.log("Bridge Start......")
             self.status_label.config(text="Status: Running")
             self.start_button.config(state=tk.DISABLED)
             self.stop_button.config(state=tk.NORMAL)
@@ -197,6 +213,7 @@ class SerialToUDPApp:
             self.stop_event.set()
             for thread in self.threads:
                 thread.join()
+            self.log("Bridge Stop......")
             self.status_label.config(text="Status: Not running")
             self.start_button.config(state=tk.NORMAL)
             self.stop_button.config(state=tk.DISABLED)
@@ -257,6 +274,29 @@ class SerialToUDPApp:
         finally:
             listen_socket.close()
 
+    def error_listener(self):
+        """Listen for error messages on port 7000 and update the GUI."""
+        listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        listen_socket.bind(('', 7000)) # Default Comm port.
+        listen_socket.setblocking(False)
+
+        try:
+            while True:
+                ready_to_read, _, _ = select.select([listen_socket], [], [], 1.0)
+                if ready_to_read:
+                    data, addr = listen_socket.recvfrom(1024)
+                    if data:
+                        message = data.decode()
+                        self.log(f"Error received from {addr}: {message}", 'error')
+                        self.stop_bridge()
+                        self.status_label.config(text="Status: Not running")
+                        self.start_button.config(state=tk.NORMAL)
+                        self.stop_button.config(state=tk.DISABLED)
+        except Exception as e:
+            self.log(f"Error in error_listener: {e}", 'error')
+        finally:
+            listen_socket.close()
+
     def get_ipv4_address(self):
         """Get the IPv4 address of the enp interfaces."""
         addresses = psutil.net_if_addrs()
@@ -277,10 +317,10 @@ class SerialToUDPApp:
 
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         start_packet = f"{ip_address} start".encode()
-        for i in range(5):
+        # for i in range(5):
             # Send 5 Times to make sure recieve.
-            udp_socket.sendto(start_packet, (self.target_ip, 7000)) # Hard coded default port
-            time.sleep(0.05)
+        udp_socket.sendto(start_packet, (self.target_ip, 7000)) # Hard coded default port
+        time.sleep(0.05)
         udp_socket.close()
         self.log(f"Sent start packet to {self.target_ip}:7000")
 
@@ -296,12 +336,12 @@ class SerialToUDPApp:
         udp_socket.close()
         self.log(f"Sent stop packet to {self.target_ip}:7000")
 
-    def log(self, message):
+    def log(self, message, level='info'):
         """Log messages with timestamps."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_message = f"{timestamp} - {message}"
         self.log_text.config(state=tk.NORMAL)
-        self.log_text.insert(tk.END, log_message + "\n")
+        self.log_text.insert(tk.END, log_message + "\n", level)
         self.log_text.config(state=tk.DISABLED)
         self.log_text.see(tk.END)
 
