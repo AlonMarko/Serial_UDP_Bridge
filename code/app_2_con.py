@@ -18,9 +18,12 @@ def resource_path(relative_path):
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        # Adjust the base path to point to the parent directory (project root)
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-    return os.path.join(base_path, relative_path)
+    path = os.path.join(base_path, 'configs/', relative_path)
+
+    return path
 
 
 class SettingsWindow(tk.Toplevel):
@@ -61,7 +64,7 @@ class SettingsWindow(tk.Toplevel):
         """Save settings to the configuration file."""
         for setting, entry in self.entries.items():
             self.config.set(self.connection_name, setting, entry.get())
-        with open("config.ini", "w") as configfile:
+        with open("../configs/config.ini", "w") as configfile:
             self.config.write(configfile)
         messagebox.showinfo("Settings Saved", "Settings have been saved successfully.")
         self.destroy()
@@ -226,7 +229,7 @@ class SerialToUDPApp:
             self.config.set('Common', 'data_bits', str(self.data_bits))
             self.config.set('Common', 'parity', self.parity)
             self.config.set('Common', 'stop_bits', str(self.stop_bits))
-            with open("config.ini", "w") as configfile:
+            with open("../configs/config.ini", "w") as configfile:
                 self.config.write(configfile)
 
             self.stop_event = threading.Event()

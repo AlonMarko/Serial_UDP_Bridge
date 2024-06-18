@@ -28,11 +28,15 @@ logger.addHandler(file_handler)
 def resource_path(relative_path):
     """ Get the absolute path to the resource, works for dev and for PyInstaller """
     try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        # Adjust the base path to point to the parent directory (project root)
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-    return os.path.join(base_path, relative_path)
+    path = os.path.join(base_path, 'configs/', relative_path)
+
+    return path
 
 
 class SerialToUDPApp:
