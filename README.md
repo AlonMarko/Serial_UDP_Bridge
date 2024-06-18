@@ -168,9 +168,6 @@ Starting packet_listener service...
 packet_listener service has been enabled and started.
    ```
 
- ```sh
-   ```
-
 ## Viewing Logs
 1. View The Entire Log File:
     ```sh
