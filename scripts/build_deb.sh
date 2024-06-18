@@ -81,6 +81,7 @@ Description=Packet Listener Service
 After=network.target
 
 [Service]
+WorkingDirectory=/usr/local/my_app
 ExecStart=/usr/local/my_app/packet_listener.py
 Restart=always
 User=nobody
