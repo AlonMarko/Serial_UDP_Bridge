@@ -48,12 +48,13 @@ This project provides a Serial to UDP bridge that forwards data between a serial
 1. **Running the GUI Application:**
 
     ```sh
-    python app_gui.py
+    python app_2_con.py
     ```
 
 2. **Configuring the Bridge:**
 
-    - Enter the serial port, baud rate, target IP, target port, sampling interval, and listening UDP port.
+    - Edit Settings for the serial port and connections.
+    - The Serial port configuration is unified for all ports being opened (might change later).
     - Click "Start Bridge" to start forwarding data.
     - Click "Stop Bridge" to stop forwarding data.
     - Click "Clear Log" to clear the log window.
@@ -63,20 +64,15 @@ This project provides a Serial to UDP bridge that forwards data between a serial
 1. **Starting The Bridge:**
 
     ```sh
-    python app_cli.py --config path/to/config.ini start
-    ```
-2. **Stopping The Bridge:**
-
-    ```sh
-    python app_cli.py --config path/to/config.ini stop
+    python app_cli_2_con.py --target-ip <target-ip> start
     ```
 
-3. **Overriding Configuration Settings:**
+2. **Overriding Configuration Settings:**
 
     You can override specific settings from the command line. For example:
 
     ```sh
-    python app_cli.py --config path/to/config.ini --serial-port /dev/ttyUSB1 --baud-rate 115200 --target-ip 192.168.1.101 --target-port 54321 --listen-port 54321 --interval 2000 start
+    python app_cli_2_con.py --serial-port /dev/ttyUSB1 --baud-rate 115200 --target-port 54321 --interval 2000 start
     ```
 
 ### Configuration
@@ -84,54 +80,123 @@ This project provides a Serial to UDP bridge that forwards data between a serial
 The configuration file (`config.ini`) contains default settings for the application:
 
 ```ini
-[Settings]
-serial_port = /dev/ttyUSB0
+[Common]
 baud_rate = 9600
-target_ip = 192.168.1.100
-target_port = 12345
-listen_port = 12345
-interval = 1000
+interval = 40
+target_ip = 192.168.0.100
+data_bits = 8
+parity = None
+stop_bits = 1.0
+
+[IP_List]
+ip1 = 192.168.0.100
+ip2 = 192.168.0.101
+ip3 = 192.168.0.102
+ip4 = 127.0.0.1
+
+[Connection1]
+serial_port = /dev/ttyUSB0
+target_port = 5000
+listen_port = 5001
+
+[Connection2]
+serial_port = /dev/ttyUSB1
+target_port = 6000
+listen_port = 6001
 ```
 
 Create or edit the config.ini file to match your setup.
 
-### Systemd Service
+### CLI Version
 
-You can set up the command-line version to run as a systemd service on Linux:
+You can set up the command-line version to run as a service on raspberry pi raspbian os 11
+for our usage (can be changed manually). 
+there is a build Script that builds it using Docker and creates a debian package.
 
-1. Create a Systemd Service File:
-    ```sh
-    sudo nano /etc/systemd/system/serial_to_udp.service```
-2. Add the Following Configuration:
-   ```ini
-    [Unit]
-    Description=Serial to UDP Bridge
-    After=network.target
+## Building the Serial-UDP Bridge Package
 
-    [Service]
-    ExecStart=/usr/bin/python3 /path/to/your/app_cli.py --config /path/to/your/config.ini start
-    ExecReload=/bin/kill -HUP $MAINPID
-    Restart=always
-    User=pi
-    Group=pi
-    
-    [Install]
-    WantedBy=multi-user.target
-    ```
-Replace /path/to/your/app_cli.py and /path/to/your/config.ini with the actual paths.
+### Prerequisites
 
-3. Enable and Start the Service:
-    ```sh
-    sudo systemctl daemon-reload
-    sudo systemctl enable serial_to_udp.service
-    sudo systemctl start serial_to_udp.service
+Ensure you have Docker installed and set up on your system. This script uses Docker to build a `.deb` package for the Raspberry Pi.
+
+
+### Running the Build Script
+
+1. **Ensure `version.txt` is present**:
+   - If it's the first time, create it manually with the initial version:
+   ```sh
+   echo "0.1.0" > version.txt
    ```
-4. Reload the Configuration:
-   When you want to reload the configuration without restarting the service, use:
+   
+2. Navigate to the scripts directory:
       ```sh
-      sudo systemctl reload serial_to_udp.service
-      ```
-### Testing
+   cd scripts
+   ```
+
+3. Run the build script
+    ```sh
+   sudo ./build.sh
+   ```
+
+**This script will:**
+
+    - Increment the version number stored in version.txt.
+    - Create the necessary directory structure for the package.
+    - Copy the application files into the package directory.
+    - Generate a control file for the package.
+    - Generate a postinst script to enable and start the service upon installation.
+    - Generate a systemd service file for packet_listener.
+    - Build the .deb package using Docker.
+    - Place the built package in the ../builds directory.
+
+### Installing the Package on Raspberry Pi
+
+1. Transfer the .deb package to your Raspberry Pi:
+ ```sh
+   sudo scp ../builds/serial_udp_package_<timestamp>.deb pi@raspberrypi:/home/pi/
+   ```
+
+2. Install the package using apt-get install:
+ ```sh
+   sudo apt-get install /home/pi/serial_udp_package_<timestamp>.deb
+   ```
+**During the installation, you should see output indicating the steps being performed by the postinst script:**
+ ```sh
+Reloading systemd manager configuration...
+Enabling packet_listener service to start on boot...
+Starting packet_listener service...
+packet_listener service has been enabled and started.
+   ```
+
+ ```sh
+   ```
+
+## Viewing Logs
+1. View The Entire Log File:
+    ```sh
+    cat /var/log/packet_listener.log
+   ```
+2. Follow the Log File in Real-Time:
+     ```sh
+    tail -f /var/log/packet_listener.log
+   ```
+3. Scroll Through the Log File:
+   ```sh
+    less /var/log/packet_listener.log
+   ```
+4. View Logs with journalctl:
+    ```sh
+   sudo journalctl -u packet_listener
+   ```
+
+## Troubleshooting
+If you encounter any issues, check the logs for more details. You can also use systemctl status to get the status of the service:
+    ```sh
+    sudo systemctl status packet_listener.service
+    ```
+   
+
+## Testing
 
 A test_com.py script is provided to create a virtual serial device and generate mock data for testing purposes.
  ### Running the Test Script
