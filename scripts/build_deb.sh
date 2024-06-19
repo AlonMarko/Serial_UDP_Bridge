@@ -37,7 +37,7 @@ mkdir -p Serial_Bridge_RPI/etc/systemd/system
 mkdir -p ../builds
 
 # Copy application files
-cp ../code/app_cli_2_con.py Serial_Bridge_RPI/usr/local/my_app/
+cp ../code/app_cli.py Serial_Bridge_RPI/usr/local/my_app/
 cp ../code/packet_listener.py Serial_Bridge_RPI/usr/local/my_app/
 cp ../configs/config_cli.ini Serial_Bridge_RPI/usr/local/my_app/
 

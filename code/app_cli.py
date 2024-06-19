@@ -133,7 +133,7 @@ class SerialToUDPApp:
         try:
             for connection in self.connections:
                 logger.info(
-                    f"Starting bridge: {connection['serial_ports']} <-> UDP {self.target_ip}:{connection['target_ports']}")
+                    f"Starting bridge for {connection['name']}: {connection['serial_ports']} <-> UDP {self.target_ip}:{connection['target_ports']}")
                 self.start_connection(connection)
 
         except Exception as e:
@@ -208,7 +208,8 @@ def main():
                 'baud_rate': baud_rate,
                 'data_bits': data_bits,
                 'parity': parity,
-                'stop_bits': stop_bits
+                'stop_bits': stop_bits,
+                'name': config.get(section, 'name', fallback=section)  # Optional, for logging
             })
 
     app = SerialToUDPApp(

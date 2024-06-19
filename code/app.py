@@ -117,7 +117,7 @@ class SerialToUDPApp:
         self.config = configparser.ConfigParser()
         self.config.read(resource_path('config.ini'))
         self.ip_list = {k: v for k, v in self.config.items('IP_List')}
-        self.connections = ["Connection1", "Connection2"]
+        self.connections = [section for section in self.config.sections() if section.startswith('Connection')]
         self.threads = []
 
         self.create_main_gui()
@@ -153,31 +153,36 @@ class SerialToUDPApp:
         self.target_ip_combobox.set(next((f"{key} - {value}" for key, value in self.ip_list.items()), ''))
 
         # interval
-        self.interval_entry = self.add_common_setting("Sampling Interval (ms)", "The sampling interval in milliseconds.", 3)
+        self.interval_entry = self.add_common_setting("Sampling Interval (ms)",
+                                                      "The sampling interval in milliseconds.", 3)
 
         # Create buttons to open settings windows for each connection
-        for idx, connection in enumerate(self.connections, start=7):
-            button = ttk.Button(self.frame, text=f"Settings for {connection}", command=lambda c=connection: self.open_settings_window(c))
+        for idx, connection in enumerate(self.connections, start=4):
+            connection_name = self.config.get(connection, "name")
+            button = ttk.Button(self.frame, text=f"Settings for {connection_name}",
+                                command=lambda c=connection: self.open_settings_window(c))
             button.grid(row=idx, column=0, columnspan=2, pady=10)
 
         # Add start and stop buttons
         self.start_button = ttk.Button(self.frame, text="Start Bridge", command=self.start_bridge)
-        self.start_button.grid(row=7 + len(self.connections), column=0, pady=10)
+        self.start_button.grid(row=4 + len(self.connections), column=0, pady=10)
+
 
         self.stop_button = ttk.Button(self.frame, text="Stop Bridge", command=self.stop_bridge, state=tk.DISABLED)
-        self.stop_button.grid(row=7 + len(self.connections), column=1, pady=10)
+        self.stop_button.grid(row=4 + len(self.connections), column=1, pady=10)
 
         # Clear log button
         self.clear_log_button = ttk.Button(self.frame, text="Clear Log", command=self.clear_log)
-        self.clear_log_button.grid(row=8 + len(self.connections), column=0, columnspan=2, pady=10)
+        self.clear_log_button.grid(row=5 + len(self.connections), column=0, columnspan=2, pady=10)
 
         # Status label
         self.status_label = ttk.Label(self.frame, text="Status: Not running")
-        self.status_label.grid(row=9 + len(self.connections), column=0, columnspan=2, pady=10)
+        self.status_label.grid(row=6 + len(self.connections), column=0, columnspan=2, pady=10)
 
         # Log text area with scrollbars
         self.log_frame = ttk.Frame(self.master)
-        self.log_frame.grid(row=10 + len(self.connections), column=0, columnspan=2, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
+        self.log_frame.grid(row=7 + len(self.connections), column=0, columnspan=2, pady=10,
+                            sticky=(tk.W, tk.E, tk.N, tk.S))
         self.log_text = tk.Text(self.log_frame, state=tk.DISABLED, height=15, wrap='none')
         self.log_scroll_y = ttk.Scrollbar(self.log_frame, orient=tk.VERTICAL, command=self.log_text.yview)
         self.log_scroll_x = ttk.Scrollbar(self.log_frame, orient=tk.HORIZONTAL, command=self.log_text.xview)
@@ -295,7 +300,7 @@ class SerialToUDPApp:
             parity=parity_mapping.get(parity, serial.PARITY_NONE),
             stopbits={1: serial.STOPBITS_ONE, 1.5: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}[
                 stop_bits],
-            timeout=0.5
+            timeout=0.05
         )
 
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -311,7 +316,6 @@ class SerialToUDPApp:
 
         read_thread.start()
         listen_thread.start()
-
 
     def read_and_send_serial_data(self, serial_conn, udp_socket, target_port):
         """Read data from serial port and send it via UDP."""
@@ -346,7 +350,7 @@ class SerialToUDPApp:
     def error_listener(self):
         """Listen for error messages on port 7000 and update the GUI."""
         listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        listen_socket.bind(('', 7000)) # Default Comm port.
+        listen_socket.bind(('', 7000))  # Default Comm port.
         listen_socket.setblocking(False)
 
         try:
@@ -386,10 +390,7 @@ class SerialToUDPApp:
 
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         start_packet = f"{ip_address} start".encode()
-        # for i in range(5):
-            # Send 5 Times to make sure recieve.
-        udp_socket.sendto(start_packet, (self.target_ip, 7000)) # Hard coded default port
-        time.sleep(0.05)
+        udp_socket.sendto(start_packet, (self.target_ip, 7000))  # Hard coded default port
         udp_socket.close()
         self.log(f"Sent start packet to {self.target_ip}:7000")
 
