@@ -42,7 +42,6 @@ def resource_path(relative_path):
 class SerialToUDPApp:
     def __init__(self, connections, baud_rate, target_ip, interval):
         self.connections = connections
-        self.baud_rate = baud_rate
         self.target_ip = target_ip
         self.interval = interval
         self.threads = []
@@ -89,8 +88,28 @@ class SerialToUDPApp:
             serial_port = connection['serial_ports'][0]
             target_port = connection['target_ports'][0]
             listen_port = connection['listen_ports'][0]
+            baud_rate = connection['baud_rate']
+            data_bits = connection['data_bits']
+            parity = connection['parity'][0].upper()  # Get the first letter (N, E, O, M, S)
+            stop_bits = connection['stop_bits']
 
-            serial_conn = serial.Serial(serial_port, baudrate=self.baud_rate, timeout=1)
+            parity_mapping = {
+                'N': serial.PARITY_NONE,
+                'E': serial.PARITY_EVEN,
+                'O': serial.PARITY_ODD,
+                'M': serial.PARITY_MARK,
+                'S': serial.PARITY_SPACE
+            }
+
+            serial_conn = serial.Serial(
+                port=serial_port,
+                baudrate=baud_rate,
+                bytesize={5: serial.FIVEBITS, 6: serial.SIXBITS, 7: serial.SEVENBITS, 8: serial.EIGHTBITS}[data_bits],
+                parity=parity_mapping.get(parity, serial.PARITY_NONE),
+                stopbits={1: serial.STOPBITS_ONE, 1.5: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}[
+                    stop_bits],
+                timeout=0.5
+            )
             udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             listen_socket.bind(('', listen_port))
@@ -132,17 +151,6 @@ class SerialToUDPApp:
         except Exception as e:
             logger.info(f"Error in stop_bridge: {e}")
 
-    # def send_error_packet(self, target_ip, message):
-    #     """Send an error packet to the specified IP address."""
-    #     try:
-    #         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    #         error_packet = f"ERROR: {message}".encode()
-    #         udp_socket.sendto(error_packet, (target_ip, 7000)) # Default IP for app communication.
-    #         udp_socket.close()
-    #     except Exception as e:
-    #         logger.error(f"Failed to send error packet to {target_ip}: {e}")
-
-
 def read_config(config_path):
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -167,7 +175,6 @@ def main():
     target_ip = args.target_ip
 
     # From Common.
-    baud_rate = args.baud_rate or config.getint('Common', 'baud_rate')
     interval = args.interval or config.getint('Common', 'interval')
 
     # Nested function to get a list of ports from a config section
@@ -190,20 +197,22 @@ def main():
                 section, 'target_port')
             listen_ports = [int(port) for port in args.listen_ports.split(',')] if args.listen_ports else get_ports(
                 section, 'listen_port')
+            baud_rate = config.getint(section, 'baud_rate')
+            data_bits = config.getint(section, 'data_bits')
+            parity = config.get(section, 'parity')
+            stop_bits = config.getfloat(section, 'stop_bits')
             connections.append({
                 'serial_ports': serial_ports,
                 'target_ports': target_ports,
-                'listen_ports': listen_ports
+                'listen_ports': listen_ports,
+                'baud_rate': baud_rate,
+                'data_bits': data_bits,
+                'parity': parity,
+                'stop_bits': stop_bits
             })
-
-    # serial_ports = args.serial_ports or config.get('Common', 'serial_port')
-    #
-    # target_ports = [int(port) for port in args.target_ports.split(',')] or config.get('Settings', 'serial_port')
-    # listen_ports = [int(port) for port in args.listen_ports.split(',')] if args.listen_ports else []
 
     app = SerialToUDPApp(
         connections=connections,
-        baud_rate=baud_rate,
         target_ip=target_ip,
         interval=interval
     )

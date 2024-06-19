@@ -295,7 +295,7 @@ class SerialToUDPApp:
             parity=parity_mapping.get(parity, serial.PARITY_NONE),
             stopbits={1: serial.STOPBITS_ONE, 1.5: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}[
                 stop_bits],
-            timeout=1
+            timeout=0.5
         )
 
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
