@@ -42,7 +42,7 @@ def resource_path(relative_path):
 class SerialToUDPApp:
     def __init__(self, connections, baud_rate, target_ip, interval):
         self.connections = connections
-        self.baud_rate = baud_rate
+        # self.baud_rate = baud_rate
         self.target_ip = target_ip
         self.interval = interval
         self.threads = []
@@ -211,7 +211,7 @@ def main():
         app.start_bridge()
         try:
             while True:
-                time.sleep(0.5)
+                pass
         except KeyboardInterrupt:
             app.stop_bridge()
         except Exception as e:

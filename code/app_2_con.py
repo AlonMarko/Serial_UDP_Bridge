@@ -29,8 +29,9 @@ def resource_path(relative_path):
 class SettingsWindow(tk.Toplevel):
     def __init__(self, master, connection_name, config, *args, **kwargs):
         super().__init__(master, *args, **kwargs)
+        self.entries = {}
         self.title(f"Settings for {connection_name}")
-        self.geometry("300x300")
+        self.geometry("500x350")
         self.config = config
         self.connection_name = connection_name
 
@@ -45,25 +46,60 @@ class SettingsWindow(tk.Toplevel):
         self.save_button.pack(pady=10)
 
     def create_settings_fields(self):
-        """Create input fields for serial port, target port, and listen port."""
-        self.entries = {}
-        settings = ["serial_port", "target_port", "listen_port"]
-        for setting in settings:
-            label = ttk.Label(self, text=setting.replace("_", " ").title())
-            label.pack(pady=5)
-            entry = ttk.Entry(self)
-            entry.pack(pady=5)
-            self.entries[setting] = entry
+        """Create input fields for serial port, target port, listen port, etc."""
+        settings = {
+            "serial_port": "The serial port to use (e.g., /dev/ttyUSB0).",
+            "target_port": "The target UDP port to send data to.",
+            "listen_port": "The UDP port to listen for incoming data.",
+            "baud_rate": "The baud rate for the serial communication.",
+            "data_bits": "The number of data bits per byte (5, 6, 7, or 8).",
+            "parity": "The parity setting (None, Even, Odd, Mark, or Space).",
+            "stop_bits": "The number of stop bits (1, 1.5, or 2)."
+        }
+
+        for setting, description in settings.items():
+            frame = ttk.Frame(self)
+            frame.pack(fill='x', pady=5)
+
+            label = ttk.Label(frame, text=setting.replace("_", " ").title())
+            label.pack(side='left', padx=5)
+
+            if setting in ["data_bits", "parity", "stop_bits"]:
+                if setting == "data_bits":
+                    options = [5, 6, 7, 8]
+                elif setting == "parity":
+                    options = ["None", "Even", "Odd", "Mark", "Space"]
+                elif setting == "stop_bits":
+                    options = [1, 1.5, 2]
+
+                combobox = ttk.Combobox(frame, values=options)
+                combobox.pack(side='left', fill='x', expand=True, padx=5)
+                self.entries[setting] = combobox
+            else:
+                entry = ttk.Entry(frame)
+                entry.pack(side='left', fill='x', expand=True, padx=5)
+                self.entries[setting] = entry
+
+            info_button = ttk.Button(frame, text="?", command=lambda d=description: self.show_info(d))
+            info_button.pack(side='right', padx=5)
+
+    def show_info(self, info_text):
+        messagebox.showinfo("Info", info_text)
 
     def load_settings(self):
         """Load current settings into input fields."""
-        for setting, entry in self.entries.items():
-            entry.insert(0, self.config.get(self.connection_name, setting))
+        for setting, widget in self.entries.items():
+            value = self.config.get(self.connection_name, setting)
+            if isinstance(widget, ttk.Combobox):
+                widget.set(value)
+            else:
+                widget.insert(0, value)
 
     def save_settings(self):
         """Save settings to the configuration file."""
-        for setting, entry in self.entries.items():
-            self.config.set(self.connection_name, setting, entry.get())
+        for setting, widget in self.entries.items():
+            value = widget.get()
+            self.config.set(self.connection_name, setting, value)
         with open("../configs/config.ini", "w") as configfile:
             self.config.write(configfile)
         messagebox.showinfo("Settings Saved", "Settings have been saved successfully.")
@@ -72,22 +108,14 @@ class SettingsWindow(tk.Toplevel):
 
 class SerialToUDPApp:
     def __init__(self, master):
+        self.interval_entry = None
         self.master = master
         master.title("Serial to UDP Bridge")
-        master.geometry("800x800")  # Adjusted window size
+        master.geometry("680x680")  # Adjusted window size
         master.resizable(False, False)  # Window not resizable
 
         self.config = configparser.ConfigParser()
         self.config.read(resource_path('config.ini'))
-
-        # Load common settings
-        self.baud_rate = self.config.getint('Common', 'baud_rate')
-        self.interval = self.config.getint('Common', 'interval')
-        self.data_bits = self.config.getint('Common', 'data_bits', fallback=8)
-        self.parity = self.config.get('Common', 'parity', fallback='None')
-        self.stop_bits = self.config.getfloat('Common', 'stop_bits', fallback=1)
-
-
         self.ip_list = {k: v for k, v in self.config.items('IP_List')}
         self.connections = ["Connection1", "Connection2"]
         self.threads = []
@@ -124,18 +152,8 @@ class SerialToUDPApp:
         self.target_ip_combobox.grid(row=1, column=1, sticky=tk.EW, pady=5)
         self.target_ip_combobox.set(next((f"{key} - {value}" for key, value in self.ip_list.items()), ''))
 
-        # Baud rate and interval
-        self.baud_rate_entry = self.add_common_setting("Baud Rate", "The baud rate for the serial communication.", 2)
+        # interval
         self.interval_entry = self.add_common_setting("Sampling Interval (ms)", "The sampling interval in milliseconds.", 3)
-
-        # Data bits selection
-        self.data_bits_combobox = self.add_common_setting("Data Bits", "The number of data bits per byte (5, 6, 7, or 8).", 4, [5, 6, 7, 8])
-
-        # Parity selection
-        self.parity_combobox = self.add_common_setting("Parity", "The parity setting (None, Even, Odd, Mark, or Space).", 5, ['None', 'Even', 'Odd', 'Mark', 'Space'])
-
-        # Stop bits selection
-        self.stop_bits_combobox = self.add_common_setting("Stop Bits", "The number of stop bits (1, 1.5, or 2).", 6, [1, 1.5, 2])
 
         # Create buttons to open settings windows for each connection
         for idx, connection in enumerate(self.connections, start=7):
@@ -217,18 +235,10 @@ class SerialToUDPApp:
             self.target_ip = self.ip_list.get(selected_ip_key, None)
             if self.target_ip is None:
                 raise ValueError(f"Invalid IP address key: {selected_ip_key}")
-            self.baud_rate = int(self.baud_rate_entry.get())
-            self.interval = int(self.interval_entry.get())
-            self.data_bits = int(self.data_bits_combobox.get())
-            self.parity = self.parity_combobox.get()
-            self.stop_bits = float(self.stop_bits_combobox.get())
 
+            self.interval = int(self.interval_entry.get())
             self.config.set('Common', 'target_ip', self.target_ip)
-            self.config.set('Common', 'baud_rate', str(self.baud_rate))
             self.config.set('Common', 'interval', str(self.interval))
-            self.config.set('Common', 'data_bits', str(self.data_bits))
-            self.config.set('Common', 'parity', self.parity)
-            self.config.set('Common', 'stop_bits', str(self.stop_bits))
             with open("../configs/config.ini", "w") as configfile:
                 self.config.write(configfile)
 
@@ -261,13 +271,13 @@ class SerialToUDPApp:
 
     def start_connection(self, connection):
         """Start the connection for a specific serial port and corresponding UDP ports."""
-
         serial_port = self.config.get(connection, "serial_port")
         target_port = self.config.getint(connection, "target_port")
         listen_port = self.config.getint(connection, "listen_port")
-        data_bits = self.data_bits
-        parity = self.parity[0].upper()  # Get the first letter (N, E, O, M, S)
-        stop_bits = self.stop_bits
+        baud_rate = self.config.getint(connection, 'baud_rate')
+        data_bits = self.config.getint(connection, 'data_bits')
+        parity = self.config.get(connection, 'parity')[0].upper()
+        stop_bits = self.config.getfloat(connection, 'stop_bits')
 
         # Mapping parity value
         parity_mapping = {
@@ -280,7 +290,7 @@ class SerialToUDPApp:
 
         serial_conn = serial.Serial(
             port=serial_port,
-            baudrate=self.baud_rate,
+            baudrate=baud_rate,
             bytesize={5: serial.FIVEBITS, 6: serial.SIXBITS, 7: serial.SEVENBITS, 8: serial.EIGHTBITS}[data_bits],
             parity=parity_mapping.get(parity, serial.PARITY_NONE),
             stopbits={1: serial.STOPBITS_ONE, 1.5: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}[
