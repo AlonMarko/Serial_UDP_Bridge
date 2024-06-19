@@ -13,7 +13,7 @@ logging.basicConfig(filename='/var/log/packet_listener.log', level=logging.DEBUG
                     format='%(asctime)s %(levelname)s: %(message)s')
 
 stop_event = threading.Event()
-start_process = None  # Global variable to track the 'app_cli_2_con.py' subprocess
+start_process = None  # Global variable to track the 'app_cli.py' subprocess
 current_target_ip = None  # To track the IP from which the start packet was received
 
 
@@ -31,7 +31,7 @@ def monitor_subprocess():
 
         # Log and send an error packet if the subprocess exited with a non-zero code
         if exit_code != 0:
-            error_message = f"app_cli_2_con.py exited with code {exit_code}. Error: {stderr.decode().strip()}"
+            error_message = f"app_cli.py exited with code {exit_code}. Error: {stderr.decode().strip()}"
             logging.error(error_message)
             send_error_packet(current_target_ip, error_message)
 
@@ -59,15 +59,15 @@ def handle_start(target_ip):
     try:
         # Start the subprocess and store the Popen object in the global variable
         start_process = subprocess.Popen(
-            ['python3', 'app_cli_2_con.py', '--target-ip', target_ip, 'start'],
+            ['python3', 'app_cli.py', '--target-ip', target_ip, 'start'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
-        logging.info(f"Successfully started app_cli_2_con.py with target IP {target_ip}")
+        logging.info(f"Successfully started app_cli.py with target IP {target_ip}")
         monitor_thread = threading.Thread(target=monitor_subprocess)
         monitor_thread.start()
     except Exception as e:
-        logging.error(f"Failed to run app_cli_2_con.py: {e}")
+        logging.error(f"Failed to run app_cli.py: {e}")
 
 
 def handle_stop():
@@ -77,11 +77,11 @@ def handle_stop():
         try:
             os.kill(start_process.pid, signal.SIGINT)  # Send SIGINT to the subprocess
             start_process.wait()  # Wait for the subprocess to handle SIGINT and exit
-            logging.info("Successfully stopped app_cli_2_con.py")
+            logging.info("Successfully stopped app_cli.py")
         except Exception as e:
-            logging.error(f"Failed to stop app_cli_2_con.py: {e}")
+            logging.error(f"Failed to stop app_cli.py: {e}")
     else:
-        logging.warning("No running app_cli_2_con.py process found to stop")
+        logging.warning("No running app_cli.py process found to stop")
 
 
 def handle_packet(data, addr, current_state):

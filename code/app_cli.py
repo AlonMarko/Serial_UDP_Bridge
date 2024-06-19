@@ -1,12 +1,12 @@
 import argparse
 import configparser
-import os
-import sys
 import threading
 import serial
 import socket
 import time
 import select
+import sys
+import os
 import logging
 
 # Setup logging
@@ -28,136 +28,209 @@ logger.addHandler(file_handler)
 def resource_path(relative_path):
     """ Get the absolute path to the resource, works for dev and for PyInstaller """
     try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        # Adjust the base path to point to the parent directory (project root)
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
-    return os.path.join(base_path, relative_path)
+    path = os.path.join(base_path, 'configs/', relative_path)
+
+    return path
 
 
 class SerialToUDPApp:
-    def __init__(self, serial_port, baud_rate, target_ip, target_port, listen_port, interval):
-        self.serial_port = serial_port
-        self.baud_rate = baud_rate
+    def __init__(self, connections, baud_rate, target_ip, interval):
+        self.connections = connections
         self.target_ip = target_ip
-        self.target_port = target_port
-        self.listen_port = listen_port
-        self.interval = interval / 1000.0  # Convert to seconds
-        self.stop_event = threading.Event()
+        self.interval = interval
+        self.threads = []
+
         self.serial_conn = None
+
+        self.stop_event = threading.Event()
+
+    def read_and_send_serial_data(self, serial_conn, udp_socket, target_port):
+        """Read data from serial port and send it via UDP."""
+        try:
+            while not self.stop_event.is_set():
+                if serial_conn.in_waiting > 0:
+                    data = serial_conn.read(serial_conn.in_waiting)
+                    udp_socket.sendto(data, (self.target_ip, target_port))
+                    self.log(f"Sent: {data}")
+                time.sleep(self.interval / 1000.0)
+        except Exception as e:
+            self.log(f"Error in read_and_send_serial_data: {e}")
+            # self.send_error_packet(self.target_ip, "Error in read_and_send_serial_data")
+        finally:
+            udp_socket.close()
+            serial_conn.close()
+
+    def listen_and_forward_udp_data(self, serial_conn, listen_socket):
+        """Listen for UDP packets and forward the data to the serial port."""
+        try:
+            while not self.stop_event.is_set():
+                ready_to_read, _, _ = select.select([listen_socket], [], [], 1.0)
+                if ready_to_read:
+                    data, addr = listen_socket.recvfrom(1024)
+                    if data:
+                        serial_conn.write(data)
+                        self.log(f"Received from {addr}: {data}")
+        except Exception as e:
+            self.log(f"Error in listen_and_forward_udp_data: {e}")
+            # self.send_error_packet(self.target_ip, "Error in listen_and_forward_udp_data")
+        finally:
+            listen_socket.close()
+
+    def start_connection(self, connection):
+        """Start the connection for a specific serial port and corresponding UDP ports."""
+        try:
+            serial_port = connection['serial_ports'][0]
+            target_port = connection['target_ports'][0]
+            listen_port = connection['listen_ports'][0]
+            baud_rate = connection['baud_rate']
+            data_bits = connection['data_bits']
+            parity = connection['parity'][0].upper()  # Get the first letter (N, E, O, M, S)
+            stop_bits = connection['stop_bits']
+
+            parity_mapping = {
+                'N': serial.PARITY_NONE,
+                'E': serial.PARITY_EVEN,
+                'O': serial.PARITY_ODD,
+                'M': serial.PARITY_MARK,
+                'S': serial.PARITY_SPACE
+            }
+
+            serial_conn = serial.Serial(
+                port=serial_port,
+                baudrate=baud_rate,
+                bytesize={5: serial.FIVEBITS, 6: serial.SIXBITS, 7: serial.SEVENBITS, 8: serial.EIGHTBITS}[data_bits],
+                parity=parity_mapping.get(parity, serial.PARITY_NONE),
+                stopbits={1: serial.STOPBITS_ONE, 1.5: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}[
+                    stop_bits],
+                timeout=0.5
+            )
+            udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            listen_socket.bind(('', listen_port))
+            listen_socket.setblocking(False)
+
+            read_thread = threading.Thread(target=self.read_and_send_serial_data,
+                                           args=(serial_conn, udp_socket, target_port))
+            listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, args=(serial_conn, listen_socket))
+
+            self.threads.extend([read_thread, listen_thread])
+
+            read_thread.start()
+            listen_thread.start()
+        except Exception as e:
+            logger.error(f"Error in start_connection for {connection}: {e}")
+            # self.send_error_packet(self.target_ip, "Error in start_connection")
+            self.stop_bridge()
+            exit(1)
 
     def start_bridge(self):
         try:
-            self.serial_conn = serial.Serial(self.serial_port, baudrate=int(self.baud_rate), timeout=1)
+            for connection in self.connections:
+                logger.info(
+                    f"Starting bridge: {connection['serial_ports']} <-> UDP {self.target_ip}:{connection['target_ports']}")
+                self.start_connection(connection)
+
         except Exception as e:
-            logger.error(f"Error setting up connections: {e}")
-            return
-
-        logger.info(f"Starting bridge: {self.serial_port} <-> UDP {self.target_ip}:{self.target_port}")
-
-        self.stop_event.clear()
-
-        self.read_thread = threading.Thread(target=self.read_and_send_serial_data, daemon=True)
-        self.read_thread.start()
-        self.listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, daemon=True)
-        self.listen_thread.start()
+            logger.error(f"Error in start_bridge: {e}")
+            # self.send_error_packet(self.target_ip, "Error in start_bridge")
+            self.stop_bridge()
+            exit(1)
 
     def stop_bridge(self):
-        self.stop_event.set()
-        if self.read_thread.is_alive():
-            logger.info("Stopping Reading Serial Thread")
-            self.read_thread.join()
-            logger.info("Thread joined.")
-        if self.listen_thread.is_alive():
-            logger.info("Stopping Listening UDP Thread")
-            self.listen_thread.join()
-            logger.info("Thread joined.")
-        if self.serial_conn:
-            logger.info("Closing Serial Connection.")
-            self.serial_conn.close()
-            logger.info("Serial Connection Closed.")
-        logger.info("Bridge stopped.")
+        try:
+            self.stop_event.set()
+            for thread in self.threads:
+                thread.join()
+            logger.info("Bridge stopped.")
+        except Exception as e:
+            logger.info(f"Error in stop_bridge: {e}")
 
-    def read_and_send_serial_data(self):
-        logger.info("Serial->UDP thread started")
-        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        while not self.stop_event.is_set():
-            try:
-                if self.serial_conn.in_waiting > 0:
-                    data = self.serial_conn.read(self.serial_conn.in_waiting)
-                    udp_socket.sendto(data, (self.target_ip, int(self.target_port)))
-                    logger.info(f"Sent: {data}")
-            except Exception as e:
-                logger.error(f"Error in read socket: {e}")
-        udp_socket.close()
-
-    def listen_and_forward_udp_data(self):
-        logger.info("UDP->Serial thread started")
-        listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        listen_socket.bind(('', int(self.listen_port)))
-        listen_socket.setblocking(False)  # Set socket to non-blocking mode
-        while not self.stop_event.is_set():
-            try:
-                ready_to_read, _, _ = select.select([listen_socket], [], [], 1.0)
-                if ready_to_read:
-                    data, addr = listen_socket.recvfrom(1024)  # Buffer size 1024 bytes
-                    if data:
-                        self.serial_conn.write(data)
-                        logger.info(f"Received from {addr}: {data}")
-                    else:
-                        time.sleep(0.1)
-            except socket.error as e:
-                logger.error(f"Error in listen socket: {e}")
-                break
-            time.sleep(self.interval)
-        listen_socket.close()
-
-
-def read_config(file_path):
+def read_config(config_path):
     config = configparser.ConfigParser()
-    config.read(file_path)
+    config.read(config_path)
     return config
 
 
 def main():
     parser = argparse.ArgumentParser(description="Serial to UDP Bridge")
-    parser.add_argument("--config", type=str, default="config.ini", help="Path to the configuration file")
-    parser.add_argument("--serial-port", type=str, help="Serial port to use")
+    parser.add_argument("--config", type=str, default="config_cli.ini", help="Path to the configuration file")
+    parser.add_argument("--serial-ports", type=str, help="Comma-separated list of Serial connections to use")
     parser.add_argument("--baud-rate", type=int, help="Baud rate for serial communication")
     parser.add_argument("--target-ip", type=str, required=True, help="Target IP address for UDP")
-    parser.add_argument("--target-port", type=int, help="Target port for UDP")
-    parser.add_argument("--listen-port", type=int, help="UDP port to listen on")
+    parser.add_argument("--target-ports", type=str, help="Comma-separated list of target ports for UDP")
+    parser.add_argument("--listen-ports", type=str, help="Comma-separated list of UDP ports to listen on")
     parser.add_argument("--interval", type=int, help="Sampling interval in milliseconds")
-    parser.add_argument("action", choices=['start', 'stop'], required=True,
-                        help="Action to perform (start or stop the bridge)")
+    parser.add_argument("action", choices=['start', 'stop'], help="Action to perform (start or stop the bridge)")
 
     args = parser.parse_args()
     config = read_config(args.config)
 
-    serial_port = args.serial_port or config.get('Settings', 'serial_port')
-    baud_rate = args.baud_rate or config.getint('Settings', 'baud_rate')
+    # Mandatory as launch argument.
     target_ip = args.target_ip
-    target_port = args.target_port or config.getint('Settings', 'target_port')
-    listen_port = args.listen_port or config.getint('Settings', 'listen_port')
-    interval = args.interval or config.getint('Settings', 'sampling_interval')
+
+    # From Common.
+    interval = args.interval or config.getint('Common', 'interval')
+
+    # Nested function to get a list of ports from a config section
+    def get_ports(section, key):
+        ports = config.get(section, key, fallback="")
+        return [int(port) for port in ports.split(',')] if ports else []
+
+    # Nested function to handle serial ports from arguments or config
+    def get_serial_ports(section):
+        serial_ports = config.get(section, 'serial_port', fallback="")
+        return serial_ports.split(',')
+
+    connections = []
+    for section in config.sections():
+        if section.startswith('Connection'):
+            serial_ports = get_serial_ports(section)
+            if args.serial_ports:
+                serial_ports = args.serial_ports.split(',')
+            target_ports = [int(port) for port in args.target_ports.split(',')] if args.target_ports else get_ports(
+                section, 'target_port')
+            listen_ports = [int(port) for port in args.listen_ports.split(',')] if args.listen_ports else get_ports(
+                section, 'listen_port')
+            baud_rate = config.getint(section, 'baud_rate')
+            data_bits = config.getint(section, 'data_bits')
+            parity = config.get(section, 'parity')
+            stop_bits = config.getfloat(section, 'stop_bits')
+            connections.append({
+                'serial_ports': serial_ports,
+                'target_ports': target_ports,
+                'listen_ports': listen_ports,
+                'baud_rate': baud_rate,
+                'data_bits': data_bits,
+                'parity': parity,
+                'stop_bits': stop_bits
+            })
 
     app = SerialToUDPApp(
-        serial_port=serial_port,
-        baud_rate=baud_rate,
+        connections=connections,
         target_ip=target_ip,
-        target_port=target_port,
-        listen_port=listen_port,
         interval=interval
     )
     if args.action == 'start':
         app.start_bridge()
         try:
             while True:
-                time.sleep(1)
+                pass
         except KeyboardInterrupt:
             app.stop_bridge()
+        except Exception as e:
+            logger.error(f"Exception in main loop: {e}")
+            app.stop_bridge()
+            sys.exit(1)  # Exit with a code indicating an error
     elif args.action == 'stop':
         app.stop_bridge()
+        sys.exit(0)  # Exit with a code indicating success
+
 
 
 if __name__ == "__main__":

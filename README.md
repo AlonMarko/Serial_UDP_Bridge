@@ -48,7 +48,7 @@ This project provides a Serial to UDP bridge that forwards data between a serial
 1. **Running the GUI Application:**
 
     ```sh
-    python app_2_con.py
+    python app.py
     ```
 
 2. **Configuring the Bridge:**
@@ -64,7 +64,7 @@ This project provides a Serial to UDP bridge that forwards data between a serial
 1. **Starting The Bridge:**
 
     ```sh
-    python app_cli_2_con.py --target-ip <target-ip> start
+    python app_cli.py --target-ip <target-ip> start
     ```
 
 2. **Overriding Configuration Settings:**
@@ -72,7 +72,7 @@ This project provides a Serial to UDP bridge that forwards data between a serial
     You can override specific settings from the command line. For example:
 
     ```sh
-    python app_cli_2_con.py --serial-port /dev/ttyUSB1 --baud-rate 115200 --target-port 54321 --interval 2000 start
+    python app_cli.py --serial-port /dev/ttyUSB1 --baud-rate 115200 --target-port 54321 --interval 2000 start
     ```
 
 ### Configuration
