@@ -31,7 +31,7 @@ class SettingsWindow(tk.Toplevel):
         super().__init__(master, *args, **kwargs)
         self.entries = {}
         self.title(f"Settings for {connection_name}")
-        self.geometry("500x350")
+        self.geometry("500x380")
         self.config = config
         self.connection_name = connection_name
 
@@ -54,7 +54,9 @@ class SettingsWindow(tk.Toplevel):
             "baud_rate": "The baud rate for the serial communication.",
             "data_bits": "The number of data bits per byte (5, 6, 7, or 8).",
             "parity": "The parity setting (None, Even, Odd, Mark, or Space).",
-            "stop_bits": "The number of stop bits (1, 1.5, or 2)."
+            "stop_bits": "The number of stop bits (1, 1.5, or 2).",
+            "buffer_size": "The size of the buffer in bytes (default, 50, 100, 200, 300, 400, 500, 600, 700, 800, "
+                           "900, 1024)."
         }
 
         for setting, description in settings.items():
@@ -64,13 +66,16 @@ class SettingsWindow(tk.Toplevel):
             label = ttk.Label(frame, text=setting.replace("_", " ").title())
             label.pack(side='left', padx=5)
 
-            if setting in ["data_bits", "parity", "stop_bits"]:
+            # Add The Setting as combox in TK
+            if setting in ["data_bits", "parity", "stop_bits", "buffer_size"]:
                 if setting == "data_bits":
                     options = [5, 6, 7, 8]
                 elif setting == "parity":
                     options = ["None", "Even", "Odd", "Mark", "Space"]
                 elif setting == "stop_bits":
                     options = [1, 1.5, 2]
+                elif setting == "buffer_size":
+                    options = ["default", 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1024]
 
                 combobox = ttk.Combobox(frame, values=options)
                 combobox.pack(side='left', fill='x', expand=True, padx=5)
@@ -167,7 +172,6 @@ class SerialToUDPApp:
         self.start_button = ttk.Button(self.frame, text="Start Bridge", command=self.start_bridge)
         self.start_button.grid(row=4 + len(self.connections), column=0, pady=10)
 
-
         self.stop_button = ttk.Button(self.frame, text="Stop Bridge", command=self.stop_bridge, state=tk.DISABLED)
         self.stop_button.grid(row=4 + len(self.connections), column=1, pady=10)
 
@@ -241,7 +245,7 @@ class SerialToUDPApp:
             if self.target_ip is None:
                 raise ValueError(f"Invalid IP address key: {selected_ip_key}")
 
-            self.interval = int(self.interval_entry.get())
+            self.interval = (int(self.interval_entry.get()) / 1000.0)
             self.config.set('Common', 'target_ip', self.target_ip)
             self.config.set('Common', 'interval', str(self.interval))
             with open("../configs/config.ini", "w") as configfile:
@@ -283,6 +287,13 @@ class SerialToUDPApp:
         data_bits = self.config.getint(connection, 'data_bits')
         parity = self.config.get(connection, 'parity')[0].upper()
         stop_bits = self.config.getfloat(connection, 'stop_bits')
+        buffer_size_str = self.config.get(connection, 'buffer_size', fallback='default')
+
+        # Convert buffer size to integer or set to None for default
+        if buffer_size_str == 'default':
+            buffer_size = None
+        else:
+            buffer_size = int(buffer_size_str)
 
         # Mapping parity value
         parity_mapping = {
@@ -300,8 +311,12 @@ class SerialToUDPApp:
             parity=parity_mapping.get(parity, serial.PARITY_NONE),
             stopbits={1: serial.STOPBITS_ONE, 1.5: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}[
                 stop_bits],
-            timeout=0.05
+            timeout=0
         )
+
+        # Set custom buffer sizes if specified
+        if buffer_size is not None:
+            serial_conn.set_buffer_size(rx_size=buffer_size, tx_size=buffer_size)
 
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -309,7 +324,7 @@ class SerialToUDPApp:
         listen_socket.setblocking(False)
 
         read_thread = threading.Thread(target=self.read_and_send_serial_data,
-                                       args=(serial_conn, udp_socket, target_port))
+                                       args=(serial_conn, udp_socket, target_port, buffer_size))
         listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, args=(serial_conn, listen_socket))
 
         self.threads.extend([read_thread, listen_thread])
@@ -317,15 +332,16 @@ class SerialToUDPApp:
         read_thread.start()
         listen_thread.start()
 
-    def read_and_send_serial_data(self, serial_conn, udp_socket, target_port):
+    def read_and_send_serial_data(self, serial_conn, udp_socket, target_port, buffer_size):
         """Read data from serial port and send it via UDP."""
         try:
             while not self.stop_event.is_set():
                 if serial_conn.in_waiting > 0:
-                    data = serial_conn.read(serial_conn.in_waiting)
+                    data = serial_conn.read(
+                        min(buffer_size, serial_conn.in_waiting) if buffer_size else serial_conn.in_waiting)
                     udp_socket.sendto(data, (self.target_ip, target_port))
                     self.log(f"Sent: {data}")
-                time.sleep(self.interval / 1000.0)
+                time.sleep(self.interval)
         except Exception as e:
             self.log(f"Error in read_and_send_serial_data: {e}")
         finally:
@@ -336,7 +352,7 @@ class SerialToUDPApp:
         """Listen for UDP packets and forward the data to the serial port."""
         try:
             while not self.stop_event.is_set():
-                ready_to_read, _, _ = select.select([listen_socket], [], [], 1.0)
+                ready_to_read, _, _ = select.select([listen_socket], [], [], 0.01)
                 if ready_to_read:
                     data, addr = listen_socket.recvfrom(1024)
                     if data:

@@ -43,22 +43,22 @@ class SerialToUDPApp:
     def __init__(self, connections, baud_rate, target_ip, interval):
         self.connections = connections
         self.target_ip = target_ip
-        self.interval = interval
+        self.interval = interval / 1000.0
         self.threads = []
 
         self.serial_conn = None
 
         self.stop_event = threading.Event()
 
-    def read_and_send_serial_data(self, serial_conn, udp_socket, target_port):
+    def read_and_send_serial_data(self, serial_conn, udp_socket, target_port, buffer_size):
         """Read data from serial port and send it via UDP."""
         try:
             while not self.stop_event.is_set():
                 if serial_conn.in_waiting > 0:
-                    data = serial_conn.read(serial_conn.in_waiting)
+                    data = serial_conn.read(min(buffer_size, serial_conn.in_waiting) if buffer_size else serial_conn.in_waiting)
                     udp_socket.sendto(data, (self.target_ip, target_port))
                     self.log(f"Sent: {data}")
-                time.sleep(self.interval / 1000.0)
+                time.sleep(self.interval)
         except Exception as e:
             self.log(f"Error in read_and_send_serial_data: {e}")
             # self.send_error_packet(self.target_ip, "Error in read_and_send_serial_data")
@@ -70,7 +70,7 @@ class SerialToUDPApp:
         """Listen for UDP packets and forward the data to the serial port."""
         try:
             while not self.stop_event.is_set():
-                ready_to_read, _, _ = select.select([listen_socket], [], [], 1.0)
+                ready_to_read, _, _ = select.select([listen_socket], [], [], 0.01)
                 if ready_to_read:
                     data, addr = listen_socket.recvfrom(1024)
                     if data:
@@ -78,7 +78,6 @@ class SerialToUDPApp:
                         self.log(f"Received from {addr}: {data}")
         except Exception as e:
             self.log(f"Error in listen_and_forward_udp_data: {e}")
-            # self.send_error_packet(self.target_ip, "Error in listen_and_forward_udp_data")
         finally:
             listen_socket.close()
 
@@ -92,6 +91,13 @@ class SerialToUDPApp:
             data_bits = connection['data_bits']
             parity = connection['parity'][0].upper()  # Get the first letter (N, E, O, M, S)
             stop_bits = connection['stop_bits']
+            buffer_size_str = connection['buffer_size']
+
+            # Convert buffer size to integer or set to None for default
+            if buffer_size_str == 'default':
+                buffer_size = None
+            else:
+                buffer_size = int(buffer_size_str)
 
             parity_mapping = {
                 'N': serial.PARITY_NONE,
@@ -108,15 +114,20 @@ class SerialToUDPApp:
                 parity=parity_mapping.get(parity, serial.PARITY_NONE),
                 stopbits={1: serial.STOPBITS_ONE, 1.5: serial.STOPBITS_ONE_POINT_FIVE, 2: serial.STOPBITS_TWO}[
                     stop_bits],
-                timeout=0.5
+                timeout=0
             )
+
+            # Set custom buffer sizes if specified
+            if buffer_size is not None:
+                serial_conn.set_buffer_size(rx_size=buffer_size, tx_size=buffer_size)
+
             udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             listen_socket.bind(('', listen_port))
             listen_socket.setblocking(False)
 
             read_thread = threading.Thread(target=self.read_and_send_serial_data,
-                                           args=(serial_conn, udp_socket, target_port))
+                                           args=(serial_conn, udp_socket, target_port, buffer_size))
             listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, args=(serial_conn, listen_socket))
 
             self.threads.extend([read_thread, listen_thread])
@@ -125,7 +136,6 @@ class SerialToUDPApp:
             listen_thread.start()
         except Exception as e:
             logger.error(f"Error in start_connection for {connection}: {e}")
-            # self.send_error_packet(self.target_ip, "Error in start_connection")
             self.stop_bridge()
             exit(1)
 
