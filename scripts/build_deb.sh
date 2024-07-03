@@ -69,6 +69,9 @@ echo "Starting packet_listener service..."
 systemctl start packet_listener
 
 echo "packet_listener service has been enabled and started."
+
+echo "changing permissions in /usr/local/my_app/ directory"
+chmod +x /usr/local/my_app/*
 EOL
 
 # Make the postinst script executable
@@ -93,7 +96,7 @@ EOL
 
 # Create a Dockerfile for building the .deb package
 cat <<EOL > Dockerfile
-FROM debian:bullseye-20220328-slim
+FROM --platform=linux/arm/v7  debian:bullseye-20220328-slim
 
 # Install necessary tools
 RUN apt-get update && apt-get install -y \\

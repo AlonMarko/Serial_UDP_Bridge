@@ -25,19 +25,20 @@ def monitor_subprocess():
 
         # Log the stdout and stderr
         if stdout:
-            logging.info(f"Subprocess output: {stdout.decode().strip()}")
+            logging.info(f"Subprocess output: {stdout.strip()}")
         if stderr:
-            logging.error(f"Subprocess error: {stderr.decode().strip()}")
+            logging.error(f"Subprocess error: {stderr.strip()}")
 
         # Log and send an error packet if the subprocess exited with a non-zero code
         if exit_code != 0:
-            error_message = f"app_cli.py exited with code {exit_code}. Error: {stderr.decode().strip()}"
+            error_message = f"app_cli.py exited with code {exit_code}. Error: {stderr.strip() or stdout.strip()}"
             logging.error(error_message)
             send_error_packet(current_target_ip, error_message)
 
         # Transition back to waiting for start mode
         start_process = None
         logging.info("Transitioning back to waiting for start mode")
+
 
 def send_error_packet(target_ip, message):
     """Send an error packet to the specified IP address."""
@@ -51,7 +52,6 @@ def send_error_packet(target_ip, message):
         logging.error(f"Failed to send error packet to {target_ip}: {e}")
 
 
-
 def handle_start(target_ip):
     """Handle start packet by running the start code from a different Python file."""
     global start_process, current_target_ip
@@ -59,10 +59,15 @@ def handle_start(target_ip):
     try:
         # Start the subprocess and store the Popen object in the global variable
         start_process = subprocess.Popen(
-            ['python3', 'app_cli.py', '--target-ip', target_ip, 'start'],
+            ['sudo', '-S', 'python3', 'app_cli.py', '--target-ip', target_ip, 'start'],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            universal_newlines=True
         )
+        psw = "qwe123$"
+        stdout, stderr = start_process.communicate(input=f"{psw}\n")
+
         logging.info(f"Successfully started app_cli.py with target IP {target_ip}")
         monitor_thread = threading.Thread(target=monitor_subprocess)
         monitor_thread.start()

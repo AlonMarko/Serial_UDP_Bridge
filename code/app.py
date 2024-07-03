@@ -31,7 +31,7 @@ class SettingsWindow(tk.Toplevel):
         super().__init__(master, *args, **kwargs)
         self.entries = {}
         self.title(f"Settings for {connection_name}")
-        self.geometry("500x380")
+        self.geometry("500x400")
         self.config = config
         self.connection_name = connection_name
 
@@ -56,7 +56,8 @@ class SettingsWindow(tk.Toplevel):
             "parity": "The parity setting (None, Even, Odd, Mark, or Space).",
             "stop_bits": "The number of stop bits (1, 1.5, or 2).",
             "buffer_size": "The size of the buffer in bytes (default, 50, 100, 200, 300, 400, 500, 600, 700, 800, "
-                           "900, 1024)."
+                           "900, 1024).",
+            "Mode": "The connection Mode - single way or both way reading and udp forwarding."
         }
 
         for setting, description in settings.items():
@@ -67,7 +68,7 @@ class SettingsWindow(tk.Toplevel):
             label.pack(side='left', padx=5)
 
             # Add The Setting as combox in TK
-            if setting in ["data_bits", "parity", "stop_bits", "buffer_size"]:
+            if setting in ["data_bits", "parity", "stop_bits", "buffer_size", "baud_rate", "Mode"]:
                 if setting == "data_bits":
                     options = [5, 6, 7, 8]
                 elif setting == "parity":
@@ -76,6 +77,10 @@ class SettingsWindow(tk.Toplevel):
                     options = [1, 1.5, 2]
                 elif setting == "buffer_size":
                     options = ["default", 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1024]
+                elif setting == "baud_rate":
+                    options = [4800, 9600, 19200, 38400, 57600, 115200]
+                elif setting == "Mode":
+                    options = ["Rx", "Tx", "Tx/Rx"]
 
                 combobox = ttk.Combobox(frame, values=options)
                 combobox.pack(side='left', fill='x', expand=True, padx=5)
@@ -245,9 +250,10 @@ class SerialToUDPApp:
             if self.target_ip is None:
                 raise ValueError(f"Invalid IP address key: {selected_ip_key}")
 
-            self.interval = (int(self.interval_entry.get()) / 1000.0)
+            self.interval = (int(self.interval_entry.get()))
             self.config.set('Common', 'target_ip', self.target_ip)
             self.config.set('Common', 'interval', str(self.interval))
+            self.interval = self.interval / 1000.0
             with open("../configs/config.ini", "w") as configfile:
                 self.config.write(configfile)
 
@@ -288,6 +294,7 @@ class SerialToUDPApp:
         parity = self.config.get(connection, 'parity')[0].upper()
         stop_bits = self.config.getfloat(connection, 'stop_bits')
         buffer_size_str = self.config.get(connection, 'buffer_size', fallback='default')
+        conn_direction = self.config.get(connection, 'Mode')
 
         # Convert buffer size to integer or set to None for default
         if buffer_size_str == 'default':
@@ -323,14 +330,22 @@ class SerialToUDPApp:
         listen_socket.bind(('', listen_port))
         listen_socket.setblocking(False)
 
-        read_thread = threading.Thread(target=self.read_and_send_serial_data,
-                                       args=(serial_conn, udp_socket, target_port, buffer_size))
-        listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, args=(serial_conn, listen_socket))
-
-        self.threads.extend([read_thread, listen_thread])
-
-        read_thread.start()
-        listen_thread.start()
+        if conn_direction == "Tx":
+            read_thread = threading.Thread(target=self.read_and_send_serial_data,
+                                           args=(serial_conn, udp_socket, target_port, buffer_size))
+            self.threads.extend([read_thread])
+            read_thread.start()
+        elif conn_direction == "Rx":
+            listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, args=(serial_conn, listen_socket))
+            self.threads.extend([listen_thread])
+            listen_thread.start()
+        elif conn_direction == "Tx/Rx":
+            read_thread = threading.Thread(target=self.read_and_send_serial_data,
+                                           args=(serial_conn, udp_socket, target_port, buffer_size))
+            listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, args=(serial_conn, listen_socket))
+            self.threads.extend([read_thread, listen_thread])
+            read_thread.start()
+            listen_thread.start()
 
     def read_and_send_serial_data(self, serial_conn, udp_socket, target_port, buffer_size):
         """Read data from serial port and send it via UDP."""

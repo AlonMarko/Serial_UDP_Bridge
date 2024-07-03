@@ -40,7 +40,7 @@ def resource_path(relative_path):
 
 
 class SerialToUDPApp:
-    def __init__(self, connections, baud_rate, target_ip, interval):
+    def __init__(self, connections, target_ip, interval):
         self.connections = connections
         self.target_ip = target_ip
         self.interval = interval / 1000.0
@@ -55,12 +55,13 @@ class SerialToUDPApp:
         try:
             while not self.stop_event.is_set():
                 if serial_conn.in_waiting > 0:
-                    data = serial_conn.read(min(buffer_size, serial_conn.in_waiting) if buffer_size else serial_conn.in_waiting)
+                    data = serial_conn.read(
+                        min(buffer_size, serial_conn.in_waiting) if buffer_size else serial_conn.in_waiting)
                     udp_socket.sendto(data, (self.target_ip, target_port))
-                    self.log(f"Sent: {data}")
+                    logger.info(f"Sent: {data}")
                 time.sleep(self.interval)
         except Exception as e:
-            self.log(f"Error in read_and_send_serial_data: {e}")
+            logger.info(f"Error in read_and_send_serial_data: {e}")
             # self.send_error_packet(self.target_ip, "Error in read_and_send_serial_data")
         finally:
             udp_socket.close()
@@ -75,9 +76,9 @@ class SerialToUDPApp:
                     data, addr = listen_socket.recvfrom(1024)
                     if data:
                         serial_conn.write(data)
-                        self.log(f"Received from {addr}: {data}")
+                        logger.info(f"Received from {addr}: {data}")
         except Exception as e:
-            self.log(f"Error in listen_and_forward_udp_data: {e}")
+            logger.error(f"Error in listen_and_forward_udp_data: {e}")
         finally:
             listen_socket.close()
 
@@ -92,6 +93,7 @@ class SerialToUDPApp:
             parity = connection['parity'][0].upper()  # Get the first letter (N, E, O, M, S)
             stop_bits = connection['stop_bits']
             buffer_size_str = connection['buffer_size']
+            conn_direction = connection['mode']
 
             # Convert buffer size to integer or set to None for default
             if buffer_size_str == 'default':
@@ -126,14 +128,31 @@ class SerialToUDPApp:
             listen_socket.bind(('', listen_port))
             listen_socket.setblocking(False)
 
-            read_thread = threading.Thread(target=self.read_and_send_serial_data,
-                                           args=(serial_conn, udp_socket, target_port, buffer_size))
-            listen_thread = threading.Thread(target=self.listen_and_forward_udp_data, args=(serial_conn, listen_socket))
+            if conn_direction == "Tx":
+                logger.info(f"Starting Tx Conn type")
 
-            self.threads.extend([read_thread, listen_thread])
+                read_thread = threading.Thread(target=self.read_and_send_serial_data,
+                                               args=(serial_conn, udp_socket, target_port, buffer_size))
+                self.threads.extend([read_thread])
+                read_thread.start()
+            elif conn_direction == "Rx":
+                logger.info(f"Starting Rx Conn type")
 
-            read_thread.start()
-            listen_thread.start()
+                listen_thread = threading.Thread(target=self.listen_and_forward_udp_data,
+                                                 args=(serial_conn, listen_socket))
+                self.threads.extend([listen_thread])
+                listen_thread.start()
+            elif conn_direction == "Tx/Rx":
+                logger.info(f"Starting Tx/Rx Conn type")
+
+                read_thread = threading.Thread(target=self.read_and_send_serial_data,
+                                               args=(serial_conn, udp_socket, target_port, buffer_size))
+                listen_thread = threading.Thread(target=self.listen_and_forward_udp_data,
+                                                 args=(serial_conn, listen_socket))
+                self.threads.extend([read_thread, listen_thread])
+                read_thread.start()
+                listen_thread.start()
+
         except Exception as e:
             logger.error(f"Error in start_connection for {connection}: {e}")
             self.stop_bridge()
@@ -160,6 +179,7 @@ class SerialToUDPApp:
             logger.info("Bridge stopped.")
         except Exception as e:
             logger.info(f"Error in stop_bridge: {e}")
+
 
 def read_config(config_path):
     config = configparser.ConfigParser()
@@ -211,6 +231,8 @@ def main():
             data_bits = config.getint(section, 'data_bits')
             parity = config.get(section, 'parity')
             stop_bits = config.getfloat(section, 'stop_bits')
+            buffer_size = config.get(section, 'buffer_size')
+            c_mode = config.get(section, 'Mode')
             connections.append({
                 'serial_ports': serial_ports,
                 'target_ports': target_ports,
@@ -219,7 +241,9 @@ def main():
                 'data_bits': data_bits,
                 'parity': parity,
                 'stop_bits': stop_bits,
-                'name': config.get(section, 'name', fallback=section)  # Optional, for logging
+                'name': config.get(section, 'name', fallback=section),  # Optional, for logging
+                'buffer_size': buffer_size,
+                'mode': c_mode
             })
 
     app = SerialToUDPApp(
@@ -241,7 +265,6 @@ def main():
     elif args.action == 'stop':
         app.stop_bridge()
         sys.exit(0)  # Exit with a code indicating success
-
 
 
 if __name__ == "__main__":
