@@ -276,7 +276,7 @@ class SerialToUDPApp:
             self.send_stop_packet()
             self.stop_event.set()
             for thread in self.threads:
-                thread.join()
+                thread.join(timeout=5)
             self.log("Bridge Stop......")
             self.status_label.config(text="Status: Not running")
             self.start_button.config(state=tk.NORMAL)
@@ -391,7 +391,7 @@ class SerialToUDPApp:
                     data, addr = listen_socket.recvfrom(1024)
                     if data:
                         message = data.decode()
-                        self.log(f"Error received from {addr}: {message}", 'error')
+                        self.log(f"received from {addr}: {message}", level='error')
                         self.stop_bridge()
                         self.status_label.config(text="Status: Not running")
                         self.start_button.config(state=tk.NORMAL)

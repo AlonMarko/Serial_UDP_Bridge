@@ -8,6 +8,7 @@ import select
 import sys
 import os
 import logging
+import signal
 
 # Setup logging
 logger = logging.getLogger()
@@ -24,7 +25,6 @@ file_handler = logging.FileHandler('serial_udp_bridge.log')
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-
 def resource_path(relative_path):
     """ Get the absolute path to the resource, works for dev and for PyInstaller """
     try:
@@ -38,17 +38,14 @@ def resource_path(relative_path):
 
     return path
 
-
 class SerialToUDPApp:
     def __init__(self, connections, target_ip, interval):
         self.connections = connections
         self.target_ip = target_ip
         self.interval = interval / 1000.0
         self.threads = []
-
-        self.serial_conn = None
-
         self.stop_event = threading.Event()
+        self.lock = threading.Lock()
 
     def read_and_send_serial_data(self, serial_conn, udp_socket, target_port, buffer_size):
         """Read data from serial port and send it via UDP."""
@@ -62,7 +59,6 @@ class SerialToUDPApp:
                 time.sleep(self.interval)
         except Exception as e:
             logger.info(f"Error in read_and_send_serial_data: {e}")
-            # self.send_error_packet(self.target_ip, "Error in read_and_send_serial_data")
         finally:
             udp_socket.close()
             serial_conn.close()
@@ -76,7 +72,6 @@ class SerialToUDPApp:
                     data, addr = listen_socket.recvfrom(1024)
                     if data:
                         serial_conn.write(data)
-                        logger.info(f"Received from {addr}: {data}")
         except Exception as e:
             logger.error(f"Error in listen_and_forward_udp_data: {e}")
         finally:
@@ -90,16 +85,12 @@ class SerialToUDPApp:
             listen_port = connection['listen_ports'][0]
             baud_rate = connection['baud_rate']
             data_bits = connection['data_bits']
-            parity = connection['parity'][0].upper()  # Get the first letter (N, E, O, M, S)
+            parity = connection['parity'][0].upper()
             stop_bits = connection['stop_bits']
             buffer_size_str = connection['buffer_size']
             conn_direction = connection['mode']
 
-            # Convert buffer size to integer or set to None for default
-            if buffer_size_str == 'default':
-                buffer_size = None
-            else:
-                buffer_size = int(buffer_size_str)
+            buffer_size = None if buffer_size_str == 'default' else int(buffer_size_str)
 
             parity_mapping = {
                 'N': serial.PARITY_NONE,
@@ -119,7 +110,6 @@ class SerialToUDPApp:
                 timeout=0
             )
 
-            # Set custom buffer sizes if specified
             if buffer_size is not None:
                 serial_conn.set_buffer_size(rx_size=buffer_size, tx_size=buffer_size)
 
@@ -130,33 +120,32 @@ class SerialToUDPApp:
 
             if conn_direction == "Tx":
                 logger.info(f"Starting Tx Conn type")
-
                 read_thread = threading.Thread(target=self.read_and_send_serial_data,
                                                args=(serial_conn, udp_socket, target_port, buffer_size))
-                self.threads.extend([read_thread])
+                with self.lock:
+                    self.threads.extend([read_thread])
                 read_thread.start()
             elif conn_direction == "Rx":
                 logger.info(f"Starting Rx Conn type")
-
                 listen_thread = threading.Thread(target=self.listen_and_forward_udp_data,
                                                  args=(serial_conn, listen_socket))
-                self.threads.extend([listen_thread])
+                with self.lock:
+                    self.threads.extend([listen_thread])
                 listen_thread.start()
             elif conn_direction == "Tx/Rx":
                 logger.info(f"Starting Tx/Rx Conn type")
-
                 read_thread = threading.Thread(target=self.read_and_send_serial_data,
                                                args=(serial_conn, udp_socket, target_port, buffer_size))
                 listen_thread = threading.Thread(target=self.listen_and_forward_udp_data,
                                                  args=(serial_conn, listen_socket))
-                self.threads.extend([read_thread, listen_thread])
+                with self.lock:
+                    self.threads.extend([read_thread, listen_thread])
                 read_thread.start()
                 listen_thread.start()
-
         except Exception as e:
             logger.error(f"Error in start_connection for {connection}: {e}")
             self.stop_bridge()
-            exit(1)
+            sys.exit(1)
 
     def start_bridge(self):
         try:
@@ -164,30 +153,33 @@ class SerialToUDPApp:
                 logger.info(
                     f"Starting bridge for {connection['name']}: {connection['serial_ports']} <-> UDP {self.target_ip}:{connection['target_ports']}")
                 self.start_connection(connection)
-
         except Exception as e:
             logger.error(f"Error in start_bridge: {e}")
-            # self.send_error_packet(self.target_ip, "Error in start_bridge")
             self.stop_bridge()
-            exit(1)
+            sys.exit(1)
 
     def stop_bridge(self):
         try:
             self.stop_event.set()
-            for thread in self.threads:
-                thread.join()
+            with self.lock:
+                for thread in self.threads:
+                    thread.join()
             logger.info("Bridge stopped.")
         except Exception as e:
             logger.info(f"Error in stop_bridge: {e}")
 
+def signal_handler(sig, frame):
+    logging.info(f"Received signal {sig}, shutting down.")
+    app.stop_bridge()
+    sys.exit(sig)
 
 def read_config(config_path):
     config = configparser.ConfigParser()
     config.read(config_path)
     return config
 
-
 def main():
+    global app
     parser = argparse.ArgumentParser(description="Serial to UDP Bridge")
     parser.add_argument("--config", type=str, default="config_cli.ini", help="Path to the configuration file")
     parser.add_argument("--serial-ports", type=str, help="Comma-separated list of Serial connections to use")
@@ -201,18 +193,13 @@ def main():
     args = parser.parse_args()
     config = read_config(args.config)
 
-    # Mandatory as launch argument.
     target_ip = args.target_ip
-
-    # From Common.
     interval = args.interval or config.getint('Common', 'interval')
 
-    # Nested function to get a list of ports from a config section
     def get_ports(section, key):
         ports = config.get(section, key, fallback="")
         return [int(port) for port in ports.split(',')] if ports else []
 
-    # Nested function to handle serial ports from arguments or config
     def get_serial_ports(section):
         serial_ports = config.get(section, 'serial_port', fallback="")
         return serial_ports.split(',')
@@ -223,10 +210,8 @@ def main():
             serial_ports = get_serial_ports(section)
             if args.serial_ports:
                 serial_ports = args.serial_ports.split(',')
-            target_ports = [int(port) for port in args.target_ports.split(',')] if args.target_ports else get_ports(
-                section, 'target_port')
-            listen_ports = [int(port) for port in args.listen_ports.split(',')] if args.listen_ports else get_ports(
-                section, 'listen_port')
+            target_ports = [int(port) for port in args.target_ports.split(',')] if args.target_ports else get_ports(section, 'target_port')
+            listen_ports = [int(port) for port in args.listen_ports.split(',')] if args.listen_ports else get_ports(section, 'listen_port')
             baud_rate = config.getint(section, 'baud_rate')
             data_bits = config.getint(section, 'data_bits')
             parity = config.get(section, 'parity')
@@ -241,7 +226,7 @@ def main():
                 'data_bits': data_bits,
                 'parity': parity,
                 'stop_bits': stop_bits,
-                'name': config.get(section, 'name', fallback=section),  # Optional, for logging
+                'name': config.get(section, 'name', fallback=section),
                 'buffer_size': buffer_size,
                 'mode': c_mode
             })
@@ -251,21 +236,25 @@ def main():
         target_ip=target_ip,
         interval=interval
     )
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C for testing
+
     if args.action == 'start':
-        app.start_bridge()
         try:
+            app.start_bridge()
             while True:
-                pass
+                time.sleep(0.1)
         except KeyboardInterrupt:
             app.stop_bridge()
+            logger.info("App Terminating with keyboard Interrupt.")
+            sys.exit(2)
         except Exception as e:
             logger.error(f"Exception in main loop: {e}")
             app.stop_bridge()
-            sys.exit(1)  # Exit with a code indicating an error
+            sys.exit(1)
     elif args.action == 'stop':
         app.stop_bridge()
-        sys.exit(0)  # Exit with a code indicating success
-
+        sys.exit(0)
 
 if __name__ == "__main__":
     main()
