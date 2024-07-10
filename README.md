@@ -81,12 +81,8 @@ The configuration file (`config.ini`) contains default settings for the applicat
 
 ```ini
 [Common]
-baud_rate = 9600
-interval = 40
+interval = 5
 target_ip = 192.168.0.100
-data_bits = 8
-parity = None
-stop_bits = 1.0
 
 [IP_List]
 ip1 = 192.168.0.100
@@ -95,16 +91,19 @@ ip3 = 192.168.0.102
 ip4 = 127.0.0.1
 
 [Connection1]
-serial_port = /dev/ttyUSB0
+name = Radio 1
+serial_port = /dev/ttyUSB1
 target_port = 5000
 listen_port = 5001
-
-[Connection2]
-serial_port = /dev/ttyUSB1
-target_port = 6000
-listen_port = 6001
+baud_rate = 9600
+data_bits = 8
+parity = None
+stop_bits = 1.0
+buffer_size = default
+mode = Tx
 ```
 
+More Connections can be added with the same exact format.
 Create or edit the config.ini file to match your setup.
 
 ### CLI Version

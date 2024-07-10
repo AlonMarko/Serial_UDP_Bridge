@@ -433,7 +433,7 @@ class SerialToUDPApp:
 
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         stop_packet = f"{ip_address} stop".encode()
-        udp_socket.sendto(stop_packet, (self.target_ip, 7000))
+        udp_socket.sendto(stop_packet, (self.target_ip, 7000))  # Hard coded default port
         udp_socket.close()
         self.log(f"Sent stop packet to {self.target_ip}:7000")
 

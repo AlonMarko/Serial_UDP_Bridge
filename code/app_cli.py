@@ -243,7 +243,7 @@ def main():
         try:
             app.start_bridge()
             while True:
-                time.sleep(0.1)
+                pass
         except KeyboardInterrupt:
             app.stop_bridge()
             logger.info("App Terminating with keyboard Interrupt.")
